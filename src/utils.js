@@ -1,4 +1,4 @@
-import { Position, internalsSymbol } from "reactflow";
+import { Position, getSmoothStepPath, internalsSymbol } from "reactflow";
 
 // returns the position (top,right,bottom or right) passed node compared to
 function getParams(nodeA, nodeB) {
@@ -101,6 +101,8 @@ export const getBiDirectionalPath = (
     vertX = mPrime > 0 ? centerX + Math.sqrt(25**2/1+(mPrime**2)) : centerX - Math.sqrt(25**2/1+(mPrime**2));
     vertY = mPrime*vertX + b;
   }
+
+  // return getSmoothStepPath({sourceX, targetX, targetY, sourceY, centerX:vertX, centerY:vertY, borderRadius:5});
 
   return [`M ${sourceX} ${sourceY} Q ${vertX} ${vertY} ${targetX} ${targetY}`, (vertX+centerX)/2, (vertY+centerY)/2];
 };

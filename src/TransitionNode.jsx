@@ -21,7 +21,7 @@ export default memo(({ isConnectable }) => {
   return transition && (
     <>
       <NodeToolbar
-        className="nodrag"
+        className="nodrag nopan"
         isVisible={selectedNode === nodeId || pinned}
       >
         <TextField

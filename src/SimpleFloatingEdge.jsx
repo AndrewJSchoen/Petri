@@ -1,27 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import { useStore, getBezierPath, EdgeLabelRenderer } from "reactflow";
+import { useStore, getBezierPath, getSmoothStepPath, EdgeLabelRenderer } from "reactflow";
 import { useAtom } from "jotai";
 import { transitionsAtom } from "./atom";
 import { focusAtom } from "jotai-optics";
 import { getBiDirectionalPath, getEdgeParams } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
-
-const getOffset = (targetX, sourceX, targetY, sourceY) => {
-  const distX = Math.abs(targetX - sourceX);
-  const distY = Math.abs(targetY - sourceY);
-  if (distX <= distY && targetX > sourceX) {
-    return [25, 0];
-  } else if (distX <= distY && targetX < sourceX) {
-    return [-25, 0];
-  } else if (distX > distY && targetY > sourceY) {
-    return [0, -25];
-  } else if (distX > distY && targetY < sourceY) {
-    return [0, 25];
-  } else {
-    console.warn({ targetX, sourceX, targetY, sourceY });
-    return [0, 0];
-  }
-};
 
 function SimpleFloatingEdge({
   id,
@@ -88,6 +71,7 @@ function SimpleFloatingEdge({
         targetPosition: targetPos,
         targetX: tx,
         targetY: ty,
+        borderRadius: 5,
       });
 
   return transition?.[transitionField]?.[placeNode.id] && (
