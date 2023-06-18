@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   ConnectionMode,
@@ -8,7 +8,8 @@ import ReactFlow, {
 import "./App.css";
 import "reactflow/dist/style.css";
 import PlaceNode from "./PlaceNode";
-import SimpleFloatingEdge from "./SimpleFloatingEdge";
+import FloatingEdge from "./FloatingEdge";
+import FloatingEdgePreview from "./FloatingEdgePreview";
 import { useAtom } from "jotai";
 import { RESET, useResetAtom } from "jotai/utils";
 import {
@@ -37,10 +38,13 @@ import {
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
-  floating: SimpleFloatingEdge,
+  floating: FloatingEdge,
 };
 
 function Petri() {
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [addMode, setAddMode] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [nodeList] = useAtom(nodeListAtom);
   const [edgeList] = useAtom(edgeListAtom);
@@ -48,11 +52,11 @@ function Petri() {
   const resetPlaces = useResetAtom(placesAtom);
   const [transitions, setTransitions] = useAtom(transitionsAtom);
   const resetTransitions = useResetAtom(transitionsAtom);
-  const reducedPlaces = mapValues(places, (place) => place.tokens);
-  const reducedTransitions = mapValues(
-    transitions,
-    (transition) => transition.active
-  );
+  // const reducedPlaces = mapValues(places, (place) => place.tokens);
+  // const reducedTransitions = mapValues(
+  //   transitions,
+  //   (transition) => transition.active
+  // );
 
   useEffect(() => {
     if (simulating) {
@@ -145,7 +149,7 @@ function Petri() {
       const id = uuid4();
       const newTransition = {
         id,
-        name: `${props.source}->${props.target}`.toUpperCase(),
+        name: "New Transition",
         input: { [props.source]: { count: 1 } },
         output: { [props.target]: { count: 1 } },
         position: {
@@ -185,30 +189,45 @@ function Petri() {
     }
   };
 
-  const newPlace = () => {
-    const id = uuid4();
-    setPlaces({
-      ...places,
-      [id]: {
-        id,
-        name: "New Place",
-        position: { x: -39, y: 2.5 },
-        tokens: [],
-      },
-    });
+  const handlePaneClick = (event) => {
+    if (addMode && reactFlowInstance) {
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+      const id = uuid4();
+      setPlaces({
+        ...places,
+        [id]: {
+          id,
+          name: "New Place",
+          position,
+          tokens: [],
+        },
+      });
+      setAddMode(false);
+    }
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="App" style={{ height: "100%", width: "100%" }}>
+      <div
+        ref={reactFlowWrapper}
+        className="App"
+        style={{ height: "100%", width: "100%" }}
+      >
         <ReactFlow
+          onPaneClick={handlePaneClick}
+          onInit={(instance) => setReactFlowInstance(instance)}
           nodes={nodeList}
           edges={edgeList}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView={{ padding: 10 }}
           onNodesChange={onNodesChange}
+          connectionLineComponent={FloatingEdgePreview}
           onConnect={onConnect}
           //onEdgesChange={onEdgesChange}
           connectionMode={ConnectionMode.Loose}
@@ -247,7 +266,7 @@ function Petri() {
             >
               {simulating ? <FiPauseCircle /> : <FiPlayCircle />}
             </IconButton>
-            <IconButton variant="outlined" onClick={newPlace}>
+            <IconButton color={addMode ? 'primary' : 'default'} onClick={() => setAddMode(!addMode)}>
               <FiPlusCircle />
             </IconButton>
             <IconButton

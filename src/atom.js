@@ -6,7 +6,7 @@ export const tokens = atom({});
 
 const data = {
   places: {
-    a: { id: "a", name: "A", position: { x: -40, y: 40 }, tokens: [] },
+    a: { id: "a", name: "A", position: { x: -50, y: 40 }, tokens: [] },
     b: {
       id: "b",
       name: "Agent 2 Idle",
@@ -55,7 +55,7 @@ const data = {
       id: "9b484783-cb44-4b0f-9062-9f83bfa24807",
       name: "Sink",
       position: { x: 530, y: 40 },
-      tokens: 'sink',
+      tokens: "sink",
     },
   },
   transitions: {
@@ -190,6 +190,7 @@ export const nodesAtom = atom((get) => ({
   ...mapValues(get(transitionsAtom), (transition) => ({
     id: transition.id,
     type: "transitionNode",
+    dragHandle: ".transition-drag-handle",
     position: transition.position,
     // data: { label: transition.name, active: transition.active },
   })),
@@ -203,8 +204,8 @@ export const edgesAtom = atom((get) => {
         id: transition.id + "--" + inputKey,
         source: inputKey,
         target: transition.id,
-        sourceHandle: "d",
-        targetHandle: "a",
+        sourceHandle: "out",
+        targetHandle: "in",
         type: "floating",
         markerEnd: { type: "arrowclosed" },
       };
@@ -214,14 +215,48 @@ export const edgesAtom = atom((get) => {
         id: outputKey + "--" + transition.id,
         source: transition.id,
         target: outputKey,
-        sourceHandle: "d",
-        targetHandle: "a",
+        sourceHandle: "out",
+        targetHandle: "in",
         type: "floating",
         markerEnd: { type: "arrowclosed" },
       };
     });
   });
   return edges;
+});
+
+export const transitionArrangementsAtom = atom((get) => {
+  const transitions = get(transitionsAtom);
+  const places = get(placesAtom);
+  return mapValues(transitions, (transition) => {
+    const inputKeys = Object.keys(transition.input);
+    const outputKeys = Object.keys(transition.output);
+    const sourceX =
+      inputKeys
+        .map((placeId) => places[placeId].position.x)
+        .reduce((a, b) => a + b, 0) / inputKeys.length;
+    const sourceY =
+      inputKeys
+        .map((placeId) => places[placeId].position.y)
+        .reduce((a, b) => a + b, 0) / inputKeys.length;
+    const targetX =
+      outputKeys
+        .map((placeId) => places[placeId].position.x)
+        .reduce((a, b) => a + b, 0) / outputKeys.length;
+    const targetY =
+      outputKeys
+        .map((placeId) => places[placeId].position.y)
+        .reduce((a, b) => a + b, 0) / outputKeys.length;
+    const angle =
+      (Math.atan2(targetY - sourceY, targetX - sourceX) * 180) / Math.PI;
+    return {
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      angle,
+    };
+  });
 });
 
 export const nodeListAtom = atom((get) => Object.values(get(nodesAtom)));

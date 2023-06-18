@@ -12,7 +12,9 @@
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
+    "@mui/base": "^5.0.0-beta.4",
     "@mui/material": "^5.13.2",
+    "d3-force": "^3.0.0",
     "jotai": "^2.1.0",
     "jotai-optics": "^0.3.0",
     "lodash": "^4.17.21",

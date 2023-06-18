@@ -1,36 +1,24 @@
 import { useCallback, useMemo, useState } from "react";
 import { useStore, getBezierPath, getSmoothStepPath, EdgeLabelRenderer } from "reactflow";
-import { useAtom } from "jotai";
-import { transitionsAtom } from "./atom";
+import { useAtom, useAtomValue } from "jotai";
+import { transitionArrangementsAtom, transitionsAtom } from "./atom";
 import { focusAtom } from "jotai-optics";
-import { getBiDirectionalPath, getEdgeParams } from "./utils.js";
+import { getBiDirectionalPath, getCustomEdge, getEdgeParams, getNodeCenter } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
 
-function SimpleFloatingEdge({
+function FloatingEdge({
   id,
   source,
   target,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  markerEnd,
-  style,
+  markerEnd
 }) {
+
   const sourceNode = useStore(
     useCallback((store) => store.nodeInternals.get(source), [source])
   );
   const targetNode = useStore(
     useCallback((store) => store.nodeInternals.get(target), [target])
   );
-  const isBiDirectionEdge = useStore((s) => {
-    const edgeExists = s.edges.some(
-      (e) =>
-        (e.source === target && e.target === source) ||
-        (e.target === source && e.source === target)
-    );
-    return edgeExists;
-  });
 
   if (!sourceNode || !targetNode) {
     return null;
@@ -46,33 +34,22 @@ function SimpleFloatingEdge({
     () => focusAtom(transitionsAtom, (optic) => optic.prop(transitionNode.id)),
     [transitionNode.id]
   );
-  const [transition, setTransition] = useAtom(transitionAtom);
-
-  const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(
-    sourceNode,
-    targetNode
+  const transitionArrangementAtom = useMemo(
+    () => focusAtom(transitionArrangementsAtom, (optic) => optic.prop(transitionNode.id)),
+    [transitionNode.id]
   );
+
+  const [transition, setTransition] = useAtom(transitionAtom);
+  const transitionArrangement = useAtomValue(transitionArrangementAtom);
 
   const [interactive, setInteractive] = useState(false);
 
-  const [edgePath, labelX, labelY] = isBiDirectionEdge
-    ? getBiDirectionalPath({
-        sourceX: sx,
-        sourceY: sy,
-        sourcePosition: sourcePos,
-        targetPosition: targetPos,
-        targetX: tx,
-        targetY: ty,
-      })
-    : getBezierPath({
-        sourceX: sx,
-        sourceY: sy,
-        sourcePosition: sourcePos,
-        targetPosition: targetPos,
-        targetX: tx,
-        targetY: ty,
-        borderRadius: 5,
-      });
+  const [edgePath, labelX, labelY] = getCustomEdge(
+    getNodeCenter(sourceNode), 
+    getNodeCenter(targetNode), 
+    transitionField, 
+    transitionArrangement
+  );
 
   return transition?.[transitionField]?.[placeNode.id] && (
     <g
@@ -106,7 +83,7 @@ function SimpleFloatingEdge({
               console.log("minus");
               if (transition[transitionField][placeNode.id]?.count === 1) {
                 const { [placeNode.id]: _, ...rest } = transition[transitionField];
-                console.log({ rest });
+                // console.log({ rest });
                 setTransition({
                   ...transition,
                   [transitionField]: rest,
@@ -181,4 +158,4 @@ function SimpleFloatingEdge({
   );
 }
 
-export default SimpleFloatingEdge;
+export default FloatingEdge;

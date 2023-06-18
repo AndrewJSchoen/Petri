@@ -1,6 +1,6 @@
 import { Avatar, InputAdornment, TextField } from "@mui/material";
 import React, { memo, useMemo, useState } from "react";
-import { Handle, Position, NodeToolbar, useNodeId } from "reactflow";
+import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
 import { placesAtom, selectedNodeAtom, transitionsAtom } from "./atom";
@@ -9,8 +9,15 @@ import { IoInfinite, IoExitOutline } from "react-icons/io5";
 import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
 import { pickBy, mapValues } from "lodash";
 
+const connectionNodeIdSelector = (state) => state.connectionNodeId;
+
 export default memo(({ isConnectable }) => {
   const nodeId = useNodeId();
+  const connectionNodeId = useStore(connectionNodeIdSelector);
+
+  const isConnecting = !!connectionNodeId;
+  const isTarget = connectionNodeId && connectionNodeId == nodeId;
+
   const placeAtom = useMemo(
     () => focusAtom(placesAtom, (optic) => optic.prop(nodeId)),
     [nodeId]
@@ -57,7 +64,10 @@ export default memo(({ isConnectable }) => {
                     <InputAdornment position="end">
                       <FiMinus
                         onClick={() => {
-                          setPlace({ ...place, tokens: place.tokens.slice(0, -1) });
+                          setPlace({
+                            ...place,
+                            tokens: place.tokens.slice(0, -1),
+                          });
                         }}
                       />
                     </InputAdornment>
@@ -66,7 +76,7 @@ export default memo(({ isConnectable }) => {
                     <InputAdornment position="end">
                       <FiPlus
                         onClick={() => {
-                          setPlace({ ...place, tokens: [...place.tokens,{}] });
+                          setPlace({ ...place, tokens: [...place.tokens, {}] });
                         }}
                       />
                     </InputAdornment>
@@ -107,6 +117,26 @@ export default memo(({ isConnectable }) => {
             }}
           />
         </NodeToolbar>
+
+        <Handle
+          id="out"
+          type="source"
+          position={Position.Right}
+          style={{
+            background: "#555",
+            width: "calc(100% + 10px)",
+            height: "calc(100% + 10px)",
+            position: "absolute",
+            top: -5,
+            left: -5,
+            borderRadius: 100,
+            transform: "none",
+            border: "none",
+            opacity: 0.5,
+          }}
+          onConnect={(params) => console.log("handle onConnect", params)}
+          isConnectable={isConnectable}
+        />
         <Avatar
           style={{ color: "black" }}
           onClick={
@@ -123,45 +153,28 @@ export default memo(({ isConnectable }) => {
             place.tokens.length > 0 && place.tokens.length
           )}
         </Avatar>
-        {/* <div
-        style={{
-          borderRadius: 400,
-          background: "lightgrey",
-          color: "black",
-          height: 50,
-          width: 50,
-        }}
-      >
-        {data.tokens.length > 0 && data.tokens.length}
-      </div> */}
-        <Handle
-          id="a"
-          position={Position.Top}
-          style={{ background: "#555" }}
-          onConnect={(params) => console.log("handle onConnect", params)}
-          isConnectable={isConnectable}
-        />
-        <Handle
-          id="b"
-          position={Position.Right}
-          style={{ background: "#555" }}
-          onConnect={(params) => console.log("handle onConnect", params)}
-          isConnectable={isConnectable}
-        />
-        <Handle
-          id="c"
-          position={Position.Bottom}
-          style={{ background: "#555" }}
-          onConnect={(params) => console.log("handle onConnect", params)}
-          isConnectable={isConnectable}
-        />
-        <Handle
-          id="d"
-          position={Position.Left}
-          style={{ background: "#555" }}
-          onConnect={(params) => console.log("handle onConnect", params)}
-          isConnectable={isConnectable}
-        />
+
+        {isConnecting && (
+          <Handle
+            id="in"
+            style={{
+              background: isTarget ? "yellow":"cyan",
+              width: "calc(100% + 10px)",
+              height: "calc(100% + 10px)",
+              position: "absolute",
+              top: -5,
+              left: -5,
+              borderRadius: 100,
+              transform: "none",
+              border: "none",
+              opacity: 0.1,
+            }}
+            position={Position.Left}
+            type="target"
+            onConnect={(params) => console.log("handle onConnect", params)}
+            isConnectable={isConnectable}
+          />
+        )}
       </>
     )
   );
