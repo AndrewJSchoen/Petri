@@ -89,17 +89,12 @@ export default memo(({ isConnectable }) => {
                       const newTransitions = mapValues(
                         transitions,
                         (transition) => {
-                          const inputs = pickBy(
-                            transition.inputs,
-                            (input) => input !== place.id
-                          );
-                          const outputs = pickBy(
-                            transition.outputs,
-                            (output) => output !== place.id
-                          );
-                          return { ...transition, inputs, outputs };
+                          const { [place.id]: _i, ...input } = transition.input;
+                          const { [place.id]: _o, ...output } = transition.output;
+                          return { ...transition, input, output };
                         }
                       );
+                      console.log({id:place.id,rest,newTransitions});
                       setPlaces(rest);
                       setTransitions(newTransitions);
                     }}

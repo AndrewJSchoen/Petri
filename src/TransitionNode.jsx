@@ -37,7 +37,7 @@ export default memo(({ isConnectable }) => {
   const [pinned, setPinned] = useState(false);
 
   return (
-    transition && (
+    transition && transitionArrangement && (
       <>
         <NodeToolbar
           className="nodrag nopan"
