@@ -158,7 +158,7 @@ export default memo(({ isConnectable }) => {
           <Handle
             id="in"
             style={{
-              background: isTarget ? "yellow":"cyan",
+              background: isTarget ? "yellow" : "cyan",
               width: "calc(100% + 10px)",
               height: "calc(100% + 10px)",
               position: "absolute",
