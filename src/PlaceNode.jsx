@@ -8,9 +8,9 @@ import {
 } from "@mui/material";
 import React, { memo, useMemo, useState } from "react";
 import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { focusAtom } from "jotai-optics";
-import { placesAtom, selectedNodeAtom, transitionsAtom } from "./atom";
+import { markingAtom, initialMarkingAtom, placesAtom, selectedNodeAtom, transitionsAtom, simulatingAtom } from "./atom";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoInfinite, IoExitOutline } from "react-icons/io5";
 import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
@@ -29,10 +29,13 @@ export default memo(({ isConnectable }) => {
     () => focusAtom(placesAtom, (optic) => optic.prop(nodeId)),
     [nodeId]
   );
+  const [marking, setMarking] = useAtom(markingAtom);
+  const [initialMarking, setInitialMarking] = useAtom(initialMarkingAtom);
   const [places, setPlaces] = useAtom(placesAtom);
   const [transitions, setTransitions] = useAtom(transitionsAtom);
   const [place, setPlace] = useAtom(placeAtom);
   const [selectedNode, setSelectedNode] = useAtom(selectedNodeAtom);
+  const simulating = useAtomValue(simulatingAtom);
   const [pinned, setPinned] = useState(false);
 
   return (
@@ -47,20 +50,15 @@ export default memo(({ isConnectable }) => {
               exclusive
               color='primary'
               style={{ height: 20 }}
-              value={typeof place.tokens === "string" ? place.tokens : "#"}
+              value={place.tokens}
               onChange={(_,newValue) => {
-                if (newValue === "#") {
-                  setPlace({ ...place, tokens: [] });
-                } else {
-                  setPlace({ ...place, tokens: newValue });
-                }
-                
+                setPlace({ ...place, tokens: newValue });
               }}
             >
               <ToggleButton value="infinite">
                 <IoInfinite />
               </ToggleButton>
-              <ToggleButton value="#">#</ToggleButton>
+              <ToggleButton value="finite">#</ToggleButton>
               <ToggleButton value="sink">
                 <IoExitOutline />
               </ToggleButton>
@@ -94,10 +92,18 @@ export default memo(({ isConnectable }) => {
                       <InputAdornment position="end">
                         <FiMinus
                           onClick={() => {
-                            setPlace({
-                              ...place,
-                              tokens: place.tokens.slice(0, -1),
-                            });
+                            if (simulating) {
+                              setMarking({
+                                ...marking,
+                                [place.id]: marking[place.id] - 1
+                              })
+                            } else {
+                              setInitialMarking({
+                                ...initialMarking,
+                                [place.id]: initialMarking[place.id] - 1
+                              })
+                            }
+                            
                           }}
                         />
                       </InputAdornment>
@@ -106,10 +112,17 @@ export default memo(({ isConnectable }) => {
                       <InputAdornment position="end">
                         <FiPlus
                           onClick={() => {
-                            setPlace({
-                              ...place,
-                              tokens: [...place.tokens, {}],
-                            });
+                            if (simulating) {
+                              setMarking({
+                                ...marking,
+                                [place.id]: marking[place.id] + 1
+                              })
+                            } else {
+                              setInitialMarking({
+                                ...initialMarking,
+                                [place.id]: initialMarking[place.id] + 1
+                              })
+                            }
                           }}
                         />
                       </InputAdornment>
@@ -118,7 +131,7 @@ export default memo(({ isConnectable }) => {
                       position="end"
                       onClick={() => {
                         const { [place.id]: _, ...rest } = places;
-                        console.log("rest", rest);
+                        // console.log("rest", rest);
                         const newTransitions = mapValues(
                           transitions,
                           (transition) => {
@@ -129,7 +142,7 @@ export default memo(({ isConnectable }) => {
                             return { ...transition, input, output };
                           }
                         );
-                        console.log({ id: place.id, rest, newTransitions });
+                        // console.log({ id: place.id, rest, newTransitions });
                         setPlaces(rest);
                         setTransitions(newTransitions);
                       }}
@@ -181,7 +194,7 @@ export default memo(({ isConnectable }) => {
           ) : place.tokens === "sink" ? (
             <IoExitOutline />
           ) : (
-            place?.tokens?.length > 0 && place.tokens.length
+            marking[place?.id]
           )}
         </Avatar>
 

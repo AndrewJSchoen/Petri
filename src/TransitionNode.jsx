@@ -1,15 +1,17 @@
-import { InputAdornment, TextField, Avatar } from "@mui/material";
-import React, { memo, useMemo, useState } from "react";
+import { InputAdornment, TextField, Avatar, Chip } from "@mui/material";
+import React, { memo, useMemo, useState, useEffect } from "react";
 import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom, useAtomValue } from "jotai";
 import {
   transitionsAtom,
   selectedNodeAtom,
   transitionArrangementsAtom,
+  markingAtom
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiMinus, FiPlus } from "react-icons/fi";
+import { motion, useSpring, useTransform } from "framer-motion";
 
 const connectionNodeIdSelector = (state) => state.connectionNodeId;
 
@@ -34,7 +36,16 @@ export default memo(({ isConnectable }) => {
   const [transition, setTransition] = useAtom(transitionAtom);
   const transitionArrangement = useAtomValue(transitionArrangementAtom);
   const [selectedNode, setSelectedNode] = useAtom(selectedNodeAtom);
+  const marking = useAtomValue(markingAtom);
   const [pinned, setPinned] = useState(false);
+
+  const angle = useSpring(transitionArrangement?.angle || 0);
+  const transform = useTransform(angle, (angle) => `rotate(${angle}deg)`);
+
+  useEffect(() => {
+    angle.set(transitionArrangement?.angle || 0);
+  }, [transitionArrangement?.angle])
+
 
   return (
     transition && transitionArrangement && (
@@ -67,7 +78,25 @@ export default memo(({ isConnectable }) => {
                 </InputAdornment>
               ),
               endAdornment: (
-                <InputAdornment
+                <>
+                  <InputAdornment position="end">
+                        <FiMinus
+                          onClick={() => {
+                            setTransition({ ...transition, time: transition.time - 1 });
+                          }}
+                        />
+                      </InputAdornment>
+                      <InputAdornment position="end">
+                        <Chip size='small' label={`${transition.time}s`} />
+                        </InputAdornment>
+                      <InputAdornment position="end">
+                        <FiPlus
+                          onClick={() => {
+                            setTransition({ ...transition, time: transition.time +1 });
+                          }}
+                        />
+                      </InputAdornment>
+                      <InputAdornment
                   position="end"
                   onClick={() => {
                     const { [transition.id]: _, ...rest } = transitions;
@@ -76,6 +105,8 @@ export default memo(({ isConnectable }) => {
                 >
                   <FiTrash2 />
                 </InputAdornment>
+                </>
+                
               ),
             }}
             inputProps={{
@@ -86,7 +117,7 @@ export default memo(({ isConnectable }) => {
             }}
           />
         </NodeToolbar>
-        <div style={{transform: `rotate(${transitionArrangement.angle}deg)`}}>
+        <motion.div style={{transform}}>
         
         <Handle
           id="out"
@@ -114,11 +145,12 @@ export default memo(({ isConnectable }) => {
             borderRadius: 2,
             zIndex: 100,
             background: "black",
-            boxShadow: transition.active
+            boxShadow: marking[nodeId]
               ? "inset 0px 0px 1px 1px #ffcc00"
               : null,
             height: 40,
             width: 20,
+            // alignItems: "center",
           }}
           onClick={
             selectedNode === nodeId
@@ -138,7 +170,7 @@ export default memo(({ isConnectable }) => {
               position: "absolute",
               top: -2.5,
               left: -2.5,
-              borderRadius: 100,
+              borderRadius: 2,
               transform: "none",
               border: "none",
               opacity: 0.1,
@@ -149,7 +181,7 @@ export default memo(({ isConnectable }) => {
             isConnectable={isConnectable}
           />
         )}
-        </div>
+        </motion.div>
         
       </>
     )
