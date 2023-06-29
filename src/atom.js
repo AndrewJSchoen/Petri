@@ -4,6 +4,10 @@ import { mapValues, cloneDeep, range } from "lodash";
 
 export const tokens = atom({});
 
+export const startColorAtom = atom("#ffcc00");
+
+export const endColorAtom = atom("#40826D");
+
 export const nameAtom = atom("Untitled");
 
 const data = {
@@ -225,16 +229,6 @@ export const edgesAtom = atom((get) => {
   });
   return edges;
 });
-
-const coerceAngle = (angle) => {
-  while (angle > 180) {
-    angle -= 360;
-  }
-  while (angle < 0) {
-    angle += 180;
-  }
-  return angle
-}
 
 export const transitionArrangementsAtom = atom((get) => {
   const transitions = get(transitionsAtom);

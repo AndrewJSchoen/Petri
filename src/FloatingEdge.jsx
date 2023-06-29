@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import {
   useStore,
   EdgeLabelRenderer,
@@ -8,6 +8,8 @@ import {
   transitionArrangementsAtom,
   transitionsAtom,
   markingAtom,
+  startColorAtom,
+  endColorAtom
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import {
@@ -15,8 +17,7 @@ import {
   getNodeCenter,
 } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
-import { motion } from "framer-motion";
-import { clamp } from "lodash";
+import { motion, useSpring, useTransform } from "framer-motion";
 
 function FloatingEdge({ id, source, target, markerEnd }) {
   const sourceNode = useStore(
@@ -52,6 +53,9 @@ function FloatingEdge({ id, source, target, markerEnd }) {
   const transitionArrangement = useAtomValue(transitionArrangementAtom);
   const marking = useAtomValue(markingAtom);
 
+  const startColor = useAtomValue(startColorAtom);
+  const endColor = useAtomValue(endColorAtom);
+
   const [interactive, setInteractive] = useState(false);
 
   const [edgePath, labelX, labelY] = getCustomEdge(
@@ -60,6 +64,22 @@ function FloatingEdge({ id, source, target, markerEnd }) {
     transitionField,
     transitionArrangement
   );
+
+  const progress = useSpring(0);
+  const actionStroke = useTransform(progress, [0, 0.75, 1], [startColor, startColor, endColor]);
+  const actionPathLength = useTransform(progress, [0, 0.5, 1], [
+    transitionField === "input" ? 0 : 0,
+    transitionField === "input" ? 1 : 0,
+    transitionField === "input" ? 1 : 1,
+  ]);
+
+  useEffect(() => {
+    if (!marking[transition?.id]) {
+      progress.jump(0)
+    } else {
+      progress.set(marking[transition?.id])
+    }
+  }, [marking[transition?.id]])
 
   return (
     transition?.[transitionField]?.[placeNode.id] && (
@@ -76,24 +96,18 @@ function FloatingEdge({ id, source, target, markerEnd }) {
           d={edgePath}
           strokeWidth={interactive ? 10 : 5}
           markerEnd={markerEnd}
-          style={{ stroke: marking[transition.id] ? "#ffcc0055" : "#999" }}
+          strokeOpacity={marking[transition.id] ? 0.5 : 1}
+          style={{ stroke: marking[transition.id] ? startColor : "#999" }}
         />
 
         {marking[transition.id] && (
           <motion.path
-            initial={{ pathLength: 0 }}
-            animate={{
-              pathLength:
-                transitionField === "input"
-                  ? clamp(marking[transition.id] * 2, 0, 1)
-                  : marking[transition.id] > 0.5
-                  ? (marking[transition.id] - 0.5) * 2
-                  : 0,
-            }}
+            strokeDashoffset={0.5}
+            pathLength={actionPathLength}
+            stroke={actionStroke}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="5"
-            stroke="#ffcc00"
             fill="none"
             d={edgePath}
           />
@@ -136,7 +150,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
               }}
             />
           )}
-          <div
+          <motion.div
             onClick={() => {
               console.log("clicked");
               setInteractive(!interactive);
@@ -144,7 +158,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              background: marking[transition.id] ? "#ffcc00" : "#222",
+              background: marking[transition.id] ? actionStroke : "#222",
               color: marking[transition.id] ? "black" : "#999",
               padding: 5,
               borderRadius: 100,
@@ -158,7 +172,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
             {transition.input[source]
               ? transition.input[source]
               : transition.output[target]}
-          </div>
+          </motion.div>
           {interactive && (
             <FiPlusCircle
               style={{

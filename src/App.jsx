@@ -5,13 +5,14 @@ import ReactFlow, {
   Panel,
   ReactFlowProvider,
 } from "reactflow";
+import { red } from "@mui/material/colors";
+import { createTheme } from "@mui/material/styles";
 import "./App.css";
 import "reactflow/dist/style.css";
 import PlaceNode from "./PlaceNode";
 import FloatingEdge from "./FloatingEdge";
 import FloatingEdgePreview from "./FloatingEdgePreview";
 import { useAtom, useSetAtom } from "jotai";
-import { useResetAtom } from "jotai/utils";
 import {
   nameAtom,
   placesAtom,
@@ -21,13 +22,14 @@ import {
   selectedNodeAtom,
   markingAtom,
   initialMarkingAtom,
-  simulatingAtom
+  simulatingAtom,
+  startColorAtom,
+  endColorAtom,
 } from "./atom";
 import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard } from "./utils";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import theme from "./theme";
 import { cloneDeep, shuffle, mapValues, clamp, pick } from "lodash";
 import { v4 as uuid4 } from "uuid";
 import {
@@ -40,6 +42,9 @@ import {
   Box,
   Button,
   TextField,
+  Stack,
+  ClickAwayListener,
+  Tooltip,
 } from "@mui/material";
 import {
   FiCopy,
@@ -52,21 +57,19 @@ import {
   FiDownload,
   FiX,
 } from "react-icons/fi";
+import { FaPalette } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import YAML from "yaml";
 import { forceSimulation } from "d3-force";
 import { forceManyBody, forceLink } from "d3-force";
+import { MuiColorInput } from "mui-color-input";
+import { AnimatePresence, motion } from "framer-motion";
+
+const MotionStack = motion(Stack);
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
   floating: FloatingEdge,
-};
-
-const mergePositions = (nodeList, positions) => {
-  return nodeList.map((node) => ({
-    ...node,
-    position: { x: positions[node.id]?.x, y: positions[node.id]?.y },
-  }));
 };
 
 function Petri() {
@@ -81,41 +84,36 @@ function Petri() {
   const [places, setPlaces] = useAtom(placesAtom);
   const [transitions, setTransitions] = useAtom(transitionsAtom);
   const setSelectedNode = useSetAtom(selectedNodeAtom);
-  const resetMarking = useResetAtom(markingAtom);
   const [marking, setMarking] = useAtom(markingAtom);
   const [initialMarking, setInitialMarking] = useAtom(initialMarkingAtom);
+  const [startColor, setStartColor] = useAtom(startColorAtom);
+  const [endColor, setEndColor] = useAtom(endColorAtom);
 
+  const [palette, setPalette] = useState(false);
   const [saveModal, setSaveModal] = useState(false);
-  // const [forceSim, setForceSim] = useState(()=>{
-  //   console.log("creating force sim");
-  //   const forceSim = forceSimulation(nodeList).force("charge", forceManyBody().strength(-500));
-  //   forceSim.tick();
-  //   return forceSim;
-  // });
-  // const [positions, setPositions] = useState(()=>{
-  //   let positions = {};
-  //   forceSim.nodes().forEach(n=>{
-  //     positions[n.id] = {x: n.x, y: n.y}
-  //   })
-  //   return positions;
-  // });
 
-  // useEffect(()=>{
-  //   console.log("Running tick");
-  //   forceSim.tick();
-  //   let newPositions = {};
-  //   forceSim.nodes().forEach(n=>{
-  //     newPositions[n.id] = {x: n.x, y: n.y}
-  //   });
-  //   console.log(forceSim.nodes()[0])
-  //   // setPositions(newPositions);
-  //   // forceSim.nodes().forEach(node=>{
-  //   //   setPositions({...positions, [node.id]: {x: node.x, y: node.y}})
-  //   // })
-  // },[positions,nodeList.length,edgeList.length])
+  const theme = createTheme({
+    palette: {
+      mode: "dark",
+      primary: {
+        main: startColor,
+      },
+      secondary: {
+        main: endColor,
+      },
+      error: {
+        main: red.A400,
+      },
+    },
+  });
 
   const download = () => {
-    const text = JSON.stringify({ name, places, transitions, marking });
+    const text = JSON.stringify({
+      name,
+      places,
+      transitions,
+      marking: initialMarking,
+    });
 
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     saveAs(blob, `${name.replaceAll(" ", "_")}.json`);
@@ -135,40 +133,60 @@ function Petri() {
         let data = YAML.parse(reader.result);
         if (data) {
           setName(data.name || "Untitled Net");
-          if (Object.values(data.places).some(p=>!p.position) || Object.values(data.transitions).some(t=>!t.position)) {
+          if (
+            Object.values(data.places).some((p) => !p.position) ||
+            Object.values(data.transitions).some((t) => !t.position)
+          ) {
             let nodes = [
-              ...Object.values(data.places).map((p) => ({id: p.id, x: p.position?.x, y: p.position?.y})),
-              ...Object.values(data.transitions).map((t) => ({id: t.id, x: t.position?.x, y: t.position?.y}))
+              ...Object.values(data.places).map((p) => ({
+                id: p.id,
+                x: p.position?.x,
+                y: p.position?.y,
+              })),
+              ...Object.values(data.transitions).map((t) => ({
+                id: t.id,
+                x: t.position?.x,
+                y: t.position?.y,
+              })),
             ];
             let links = [];
             Object.values(data.transitions).forEach((t) => {
               Object.keys(t.input).forEach((p) => {
-                const source = nodes.findIndex(n=>n.id==p);
-                const target = nodes.findIndex(n=>n.id==t.id);
+                const source = nodes.findIndex((n) => n.id == p);
+                const target = nodes.findIndex((n) => n.id == t.id);
                 links.push({ source, target });
               });
               Object.keys(t.output).forEach((p) => {
-                const target = nodes.findIndex(n=>n.id==p);
-                const source = nodes.findIndex(n=>n.id==t.id);
+                const target = nodes.findIndex((n) => n.id == p);
+                const source = nodes.findIndex((n) => n.id == t.id);
                 links.push({ source, target });
               });
             });
             // Use D3-Force to find a good layout
             let forceSim = forceSimulation(nodes)
               .force("charge", forceManyBody().strength(-500))
-              .force('link', forceLink().links(links));
+              .force("link", forceLink().links(links));
             forceSim.tick(100);
 
             let nodesPositions = forceSim.nodes();
             let positionedPlaces = mapValues(data.places, (place) => ({
               ...place,
-              position: pick(nodesPositions.find((n) => n.id == place.id),["x","y"]),
+              position: pick(
+                nodesPositions.find((n) => n.id == place.id),
+                ["x", "y"]
+              ),
             }));
-            let positionedTransitions = mapValues(data.transitions, (transition) => ({
-              ...transition,
-              time: transition.time || 2,
-              position: pick(nodesPositions.find((n) => n.id == transition.id),["x","y"]),
-            }));
+            let positionedTransitions = mapValues(
+              data.transitions,
+              (transition) => ({
+                ...transition,
+                time: transition.time || 2,
+                position: pick(
+                  nodesPositions.find((n) => n.id == transition.id),
+                  ["x", "y"]
+                ),
+              })
+            );
 
             setPlaces(positionedPlaces);
             setTransitions(positionedTransitions);
@@ -176,7 +194,7 @@ function Petri() {
             setPlaces(data.places || {});
             setTransitions(data.transitions || {});
           }
-          
+
           setMarking(data.marking || data.initial_marking || {});
           setInitialMarking(data.initial_marking || data.marking || {});
           setSaveModal(false);
@@ -190,9 +208,9 @@ function Petri() {
     fileInputRef.current.click();
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     setMarking(initialMarking);
-  },[initialMarking])
+  }, [initialMarking]);
 
   useEffect(() => {
     if (simulating) {
@@ -216,7 +234,10 @@ function Petri() {
             1
           );
           update = true;
-        } else if (newMarking[transition.id] != undefined && newMarking[transition.id] === 1) {
+        } else if (
+          newMarking[transition.id] != undefined &&
+          newMarking[transition.id] === 1
+        ) {
           // console.log("finishing transition", transition.id);
           newMarking[transition.id] = 0;
           outputNodes.forEach((outputNode) => {
@@ -348,12 +369,12 @@ function Petri() {
           id,
           name: "New Place",
           position,
-          tokens: 'finite',
+          tokens: "finite",
         },
       });
       setAddMode(false);
       setSelectedNode(id);
-      setInitialMarking({...initialMarking, [id]: 0});
+      setInitialMarking({ ...initialMarking, [id]: 0 });
     } else {
       setSelectedNode(null);
     }
@@ -387,66 +408,131 @@ function Petri() {
           <Background variant="dots" gap={24} size={1} />
           <Panel position="top-left">
             <TextField
+              aria-label="Petri Net Name"
+              label="Petri Net Name"
               size="small"
               value={name}
               onChange={(e) => setName(e.target.value)}
               variant="filled"
             />
           </Panel>
+          <Panel position="bottom-right">
+            <ClickAwayListener onClickAway={() => setPalette(false)}>
+              <Stack
+                direction="column"
+                spacing={1}
+                alignItems="end"
+              >
+                <AnimatePresence>
+                  {palette && (
+                    <MotionStack
+                      spacing={1}
+                      direction="column"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      style={{backgroundColor: "#77777777", padding:15,borderRadius:10}}
+                    >
+                      <MuiColorInput
+                        key="start"
+                        aria-label="Start Color Selector"
+                        label="Start"
+                        size="small"
+                        value={startColor}
+                        onChange={(v) => setStartColor(v)}
+                        isAlphaHidden
+                      />
+                      <MuiColorInput
+                        key="end"
+                        aria-label="End Color Selector"
+                        label="End"
+                        size="small"
+                        value={endColor}
+                        onChange={(v) => setEndColor(v)}
+                        isAlphaHidden
+                      />
+                    </MotionStack>
+                  )}
+                </AnimatePresence>
+                <Tooltip title="Set Colors">
+                  <IconButton
+                    aria-label="Toggle Color Selector"
+                    color={palette ? "primary" : "default"}
+                    onClick={() => setPalette(!palette)}
+                  >
+                    <FaPalette />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </ClickAwayListener>
+          </Panel>
           <Panel position="top-right">
-            <IconButton
-              variant="outlined"
-              disabled={simulating}
-              onClick={() => {
-                setMarking(initialMarking);
-                // resetPlaces();
-                // resetTransitions();
-                // if (simulating) {
-                //   // setSimulating(false);
-                //   resetPlaces();
-                //   resetTransitions();
-                // } else {
-                //   setSimulating(true);
-                // }
-              }}
-            >
-              <FiRotateCcw />
-            </IconButton>
-            <IconButton
-              variant="outlined"
-              onClick={() => {
-                if (simulating) {
-                  setSimulating(false);
-                } else {
-                  setSimulating(true);
-                }
-              }}
-            >
-              {simulating ? <FiPauseCircle /> : <FiPlayCircle />}
-            </IconButton>
-            <IconButton
-              color={addMode ? "primary" : "default"}
-              onClick={() => setAddMode(!addMode)}
-            >
-              <FiPlusCircle />
-            </IconButton>
-            <IconButton
-              variant="outlined"
-              onClick={() => {
-                console.log("Copying to Clipboard");
-                copyTextToClipboard(JSON.stringify({ marking, places, transitions }));
-              }}
-            >
-              <FiCopy />
-            </IconButton>
-            <IconButton
-              variant="outlined"
-              onClick={() => {
-                setSaveModal(!saveModal);
-              }}
-            >
-              <FiFileText />
-            </IconButton>
+            <Tooltip title="Restart">
+              <span>
+                <IconButton
+                  aria-label="Restart Simulation"
+                  variant="outlined"
+                  disabled={simulating}
+                  onClick={() => {
+                    setMarking(initialMarking);
+                  }}
+                >
+                  <FiRotateCcw />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={simulating ? "Pause" : "Play"}>
+              <IconButton
+                aria-label="Pause/Play Simulation Toggle"
+                variant="outlined"
+                onClick={() => {
+                  if (simulating) {
+                    setSimulating(false);
+                  } else {
+                    setSimulating(true);
+                  }
+                }}
+              >
+                {simulating ? <FiPauseCircle /> : <FiPlayCircle />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={addMode ? "Cancel" : "Add a Place"}>
+              <IconButton
+                color={addMode ? "primary" : "default"}
+                onClick={() => setAddMode(!addMode)}
+              >
+                <FiPlusCircle />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Copy to Clipboard">
+              <IconButton
+                aria-label="Copy Petri Net to Clipboard"
+                variant="outlined"
+                onClick={() => {
+                  console.log("Copying to Clipboard");
+                  copyTextToClipboard(
+                    JSON.stringify({
+                      marking: initialMarking,
+                      places,
+                      transitions,
+                    })
+                  );
+                }}
+              >
+                <FiCopy />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Upload / Download">
+              <IconButton
+                aria-label="Open modal to upload or download a Petri Net"
+                variant="outlined"
+                onClick={() => {
+                  setSaveModal(!saveModal);
+                }}
+              >
+                <FiFileText />
+              </IconButton>
+            </Tooltip>
           </Panel>
         </ReactFlow>
         <Modal open={saveModal} onClose={() => setSaveModal(false)}>
@@ -466,9 +552,14 @@ function Petri() {
               <CardHeader
                 title="Upload / Download"
                 action={
-                  <IconButton onClick={() => setSaveModal(false)}>
-                    <FiX />
-                  </IconButton>
+                  <Tooltip title="Close Modal">
+                    <IconButton
+                      aria-label="Close Modal"
+                      onClick={() => setSaveModal(false)}
+                    >
+                      <FiX />
+                    </IconButton>
+                  </Tooltip>
                 }
               />
               <CardContent>Save or Upload your Petri Net</CardContent>
@@ -481,6 +572,7 @@ function Petri() {
                 />
                 <Button
                   variant="outlined"
+                  aria-label="Upload File"
                   icon={<FiUpload />}
                   style={{ flex: 1 }}
                   onClick={handleUploadClick}
@@ -488,6 +580,7 @@ function Petri() {
                   Upload
                 </Button>
                 <Button
+                  aria-label="Download File"
                   variant="outlined"
                   icon={<FiDownload />}
                   style={{ flex: 1 }}
