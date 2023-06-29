@@ -389,6 +389,7 @@ function Petri() {
         style={{ height: "100%", width: "100%" }}
       >
         <ReactFlow
+          proOptions={{hideAttribution: true}}
           onPaneClick={handlePaneClick}
           onInit={(instance) => setReactFlowInstance(instance)}
           nodes={nodeList}
