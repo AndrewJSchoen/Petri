@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 import { atomWithReset } from "jotai/utils";
-import { mapValues, cloneDeep } from "lodash";
+import { mapValues, cloneDeep, range } from "lodash";
 
 export const tokens = atom({});
 
@@ -226,12 +226,29 @@ export const edgesAtom = atom((get) => {
   return edges;
 });
 
+const coerceAngle = (angle) => {
+  while (angle > 180) {
+    angle -= 360;
+  }
+  while (angle < 0) {
+    angle += 180;
+  }
+  return angle
+}
+
 export const transitionArrangementsAtom = atom((get) => {
   const transitions = get(transitionsAtom);
   const places = get(placesAtom);
   return mapValues(transitions, (transition) => {
     const inputKeys = Object.keys(transition.input);
     const outputKeys = Object.keys(transition.output);
+    const angles = [
+      ...inputKeys.map(k=>(Math.atan2(transition.position.y - places[k].position.y, transition.position.x - places[k].position.x ) * 180) / Math.PI),
+      ...outputKeys.map(k=>(Math.atan2(places[k].position.y - transition.position.y, places[k].position.x - transition.position.x) * 180) / Math.PI)
+    ]
+    
+    const angle = angles.reduce((a, b) => a + b, 0) / angles.length;
+
     const sourceX =
       inputKeys
         .map((placeId) => places[placeId].position.x)
@@ -248,8 +265,7 @@ export const transitionArrangementsAtom = atom((get) => {
       outputKeys
         .map((placeId) => places[placeId].position.y)
         .reduce((a, b) => a + b, 0) / outputKeys.length;
-    const angle =
-      (Math.atan2(targetY - sourceY, targetX - sourceX) * 180) / Math.PI;
+      //(Math.atan2(targetY - sourceY, targetX - sourceX) * 180) / Math.PI;
     return {
       sourceX,
       sourceY,
@@ -263,3 +279,4 @@ export const transitionArrangementsAtom = atom((get) => {
 export const nodeListAtom = atom((get) => Object.values(get(nodesAtom)));
 
 export const edgeListAtom = atom((get) => Object.values(get(edgesAtom)));
+

@@ -194,7 +194,7 @@ export default memo(({ isConnectable }) => {
           ) : place.tokens === "sink" ? (
             <IoExitOutline />
           ) : (
-            marking[place?.id]
+            marking[place?.id] || 0
           )}
         </Avatar>
 

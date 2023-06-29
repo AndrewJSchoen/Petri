@@ -306,6 +306,7 @@ function Petri() {
               places[props.target].position.y) /
             2,
         },
+        time: 1,
         active: false,
       };
       setTransitions({
@@ -347,11 +348,12 @@ function Petri() {
           id,
           name: "New Place",
           position,
-          tokens: [],
+          tokens: 'finite',
         },
       });
       setAddMode(false);
       setSelectedNode(id);
+      setInitialMarking({...initialMarking, [id]: 0});
     } else {
       setSelectedNode(null);
     }
