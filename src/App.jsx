@@ -211,7 +211,7 @@ function Petri() {
         if (newMarking[transition.id] > 0 && newMarking[transition.id] < 1) {
           // console.log(`progressing transition ${transition.id} with duration ${transition.time} by ${1 / transition.time}`);
           newMarking[transition.id] = clamp(
-            newMarking[transition.id] + 1 / transition.time,
+            newMarking[transition.id] + 0.1 / transition.time,
             0,
             1
           );
@@ -262,7 +262,7 @@ function Petri() {
           setMarking(newMarking);
           // setPlaces(newPlaces);
           // setTransitions(newTransitions);
-        }, 1000);
+        }, 100);
         return () => {
           clearTimeout(handle);
         };
