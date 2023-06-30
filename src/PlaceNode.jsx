@@ -10,7 +10,7 @@ import {
 import { styled } from '@mui/material/styles';
 import React, { memo, useMemo, useState } from "react";
 import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
 import {
   markingAtom,
@@ -21,6 +21,7 @@ import {
   simulatingAtom,
   startColorAtom,
   endColorAtom,
+  snapshotAtom,
 } from "./atom";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoInfinite, IoExitOutline } from "react-icons/io5";
@@ -73,6 +74,7 @@ export default memo(({ isConnectable }) => {
   const [pinned, setPinned] = useState(false);
   const [startColor, setStartColor] = useAtom(startColorAtom);
   const [endColor, setEndColor] = useAtom(endColorAtom);
+  const snapshot = useSetAtom(snapshotAtom);
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
@@ -89,6 +91,7 @@ export default memo(({ isConnectable }) => {
               color="primary"
               value={place.tokens}
               onChange={(_, newValue) => {
+                snapshot();
                 setPlace({ ...place, tokens: newValue });
               }}
             >
@@ -127,6 +130,7 @@ export default memo(({ isConnectable }) => {
               label="Place Info"
               variant="outlined"
               onChange={(e) => {
+                snapshot();
                 setPlace({ ...place, name: e.target.value });
               }}
               InputProps={{
@@ -170,6 +174,7 @@ export default memo(({ isConnectable }) => {
                                   [place.id]: marking[place.id] - 1,
                                 });
                               } else {
+                                snapshot();
                                 setInitialMarking({
                                   ...initialMarking,
                                   [place.id]: initialMarking[place.id] - 1,
@@ -195,6 +200,7 @@ export default memo(({ isConnectable }) => {
                                   [place.id]: marking[place.id] + 1,
                                 });
                               } else {
+                                snapshot();
                                 setInitialMarking({
                                   ...initialMarking,
                                   [place.id]: initialMarking[place.id] + 1,
@@ -211,6 +217,7 @@ export default memo(({ isConnectable }) => {
                         aria-label="Delete Place"
                         position="end"
                         onClick={() => {
+                          snapshot();
                           const { [place.id]: _, ...rest } = places;
                           const newTransitions = mapValues(
                             transitions,

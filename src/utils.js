@@ -1,4 +1,6 @@
-import { Position, getBezierPath, getSmoothStepPath, getStraightPath, internalsSymbol } from "reactflow";
+import { useEffect } from "react";
+import { atom, useAtom } from "jotai";
+import { Position, getStraightPath, internalsSymbol } from "reactflow";
 
 // returns the position (top,right,bottom or right) passed node compared to
 function getParams(nodeA, nodeB) {
@@ -136,6 +138,7 @@ export function getCustomEdge(
   let sourceControlLocation;
   let targetHandleLocation;
   let targetControlLocation;
+  const distance = Math.sqrt((sourceNodePosition.x - targetNodePosition.x)**2 + (sourceNodePosition.y - targetNodePosition.y)**2);
   if (type === "input") {
     sourceHandleLocation = getPositionAtCirclePerimeter(
       sourceNodePosition.x,
@@ -161,8 +164,8 @@ export function getCustomEdge(
       targetNodePosition.x,
       targetNodePosition.y,
       targetHandleLocation.x,
-      (9 * targetHandleLocation.y + sourceNodePosition.y) / 10,
-      -50
+      targetHandleLocation.y,
+      -1 * sigmoid(distance,60,1)
     );
   } else {
     sourceHandleLocation = projectPointByAngle(
@@ -175,8 +178,8 @@ export function getCustomEdge(
       sourceNodePosition.x,
       sourceNodePosition.y,
       sourceHandleLocation.x,
-      (9 * sourceHandleLocation.y + targetNodePosition.y) / 10,
-      -50
+      sourceHandleLocation.y,
+    -1 * sigmoid(distance,60,1)
     );
     targetHandleLocation = getPositionAtCirclePerimeter(
       targetNodePosition.x,
@@ -314,3 +317,7 @@ const projectPointByAngle = (x, y, angle, distance) => {
 const degreesToRadians = (degrees) => {
   return degrees * (Math.PI / 180);
 };
+
+function sigmoid(x,a,b) {
+  return a / (1 + Math.exp((-x/a)+b));
+}

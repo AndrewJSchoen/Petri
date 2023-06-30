@@ -3,18 +3,19 @@ import {
   useStore,
   EdgeLabelRenderer,
 } from "reactflow";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   transitionArrangementsAtom,
   transitionsAtom,
   markingAtom,
   startColorAtom,
-  endColorAtom
+  endColorAtom,
+  snapshotAtom
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import {
   getCustomEdge,
-  getNodeCenter,
+  getNodeCenter
 } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
@@ -52,6 +53,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
   const [transition, setTransition] = useAtom(transitionAtom);
   const transitionArrangement = useAtomValue(transitionArrangementAtom);
   const marking = useAtomValue(markingAtom);
+  const snapshot = useSetAtom(snapshotAtom);
 
   const startColor = useAtomValue(startColorAtom);
   const endColor = useAtomValue(endColorAtom);
@@ -127,23 +129,27 @@ function FloatingEdge({ id, source, target, markerEnd }) {
               }}
               onClick={(e) => {
                 console.log("minus");
+                snapshot();
                 if (transition[transitionField][placeNode.id] === 1) {
                   const { [placeNode.id]: _, ...rest } =
                     transition[transitionField];
                   // console.log({ rest });
-                  setTransition({
+                  const newTransition = {
                     ...transition,
                     [transitionField]: rest,
-                  });
+                  }
+                  setTransition(newTransition);
+                  // update({transitions: newTransitions})
                 } else {
-                  setTransition({
+                  const newTransition = {
                     ...transition,
                     [transitionField]: {
                       ...transition[transitionField],
                       [placeNode.id]:
                         (transition[transitionField][placeNode.id] || 0) - 1,
                     },
-                  });
+                  }
+                  setTransition(newTransition);
                 }
 
                 e.stopPropagation();
@@ -186,6 +192,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
               }}
               onClick={(e) => {
                 console.log("plus");
+                snapshot();
                 setTransition({
                   ...transition,
                   [transitionField]: {

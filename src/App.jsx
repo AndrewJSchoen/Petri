@@ -12,7 +12,7 @@ import "reactflow/dist/style.css";
 import PlaceNode from "./PlaceNode";
 import FloatingEdge from "./FloatingEdge";
 import FloatingEdgePreview from "./FloatingEdgePreview";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import {
   nameAtom,
   placesAtom,
@@ -25,6 +25,11 @@ import {
   simulatingAtom,
   startColorAtom,
   endColorAtom,
+  canUndoAtom,
+  canRedoAtom,
+  undoAtom,
+  redoAtom,
+  snapshotAtom
 } from "./atom";
 import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard } from "./utils";
@@ -49,13 +54,15 @@ import {
 import {
   FiCopy,
   FiFileText,
-  FiPauseCircle,
-  FiPlayCircle,
-  FiPlusCircle,
+  FiPause,
+  FiPlay,
+  FiPlus,
   FiRotateCcw,
+  FiRotateCw,
   FiUpload,
   FiDownload,
   FiX,
+  FiRewind,
 } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { saveAs } from "file-saver";
@@ -91,6 +98,13 @@ function Petri() {
 
   const [palette, setPalette] = useState(false);
   const [saveModal, setSaveModal] = useState(false);
+
+  const canUndo = useAtomValue(canUndoAtom);
+  const canRedo = useAtomValue(canRedoAtom);
+
+  const undo = useSetAtom(undoAtom);
+  const redo = useSetAtom(redoAtom);
+  const snapshot = useSetAtom(snapshotAtom);
 
   const theme = createTheme({
     palette: {
@@ -208,9 +222,7 @@ function Petri() {
     fileInputRef.current.click();
   };
 
-  useEffect(() => {
-    setMarking(initialMarking);
-  }, [initialMarking]);
+  // Run snapshot on certain changes
 
   useEffect(() => {
     if (simulating) {
@@ -299,17 +311,17 @@ function Petri() {
       if (change.type === "position" && change.dragging) {
         if (newPlaces[change.id]) {
           newPlaces[change.id].position = change.position;
-          setPlaces(newPlaces);
         } else if (newTransitions[change.id]) {
           newTransitions[change.id].position = change.position;
-          setTransitions(newTransitions);
         }
       }
     });
-    // setNodes(newNodes);
+    setPlaces(newPlaces);
+    setTransitions(newTransitions);
   };
-
+  
   const onConnect = (props) => {
+    snapshot();
     if (places[props.source] && places[props.target]) {
       const id = uuid4();
       const newTransition = {
@@ -330,27 +342,30 @@ function Petri() {
         time: 1,
         active: false,
       };
-      setTransitions({
+      const newTransitions = {
         ...transitions,
         [id]: newTransition,
-      });
+      };
+      setTransitions(newTransitions);
     } else if (places[props.source] && transitions[props.target]) {
       let currentTransition = transitions[props.target];
       if (!currentTransition.input[props.source]) {
         currentTransition.input[props.source] = 1;
-        setTransitions({
+        const newTransitions = {
           ...transitions,
           [currentTransition.id]: currentTransition,
-        });
+        };
+        setTransitions(newTransitions);
       }
     } else if (transitions[props.source] && places[props.target]) {
       let currentTransition = transitions[props.source];
       if (!currentTransition.output[props.target]) {
         currentTransition.output[props.target] = 1;
-        setTransitions({
+        const newTransitions = {
           ...transitions,
           [currentTransition.id]: currentTransition,
-        });
+        };
+        setTransitions(newTransitions);
       }
     }
   };
@@ -389,7 +404,7 @@ function Petri() {
         style={{ height: "100%", width: "100%" }}
       >
         <ReactFlow
-          proOptions={{hideAttribution: true}}
+          proOptions={{ hideAttribution: true }}
           onPaneClick={handlePaneClick}
           onInit={(instance) => setReactFlowInstance(instance)}
           nodes={nodeList}
@@ -398,6 +413,7 @@ function Petri() {
           edgeTypes={edgeTypes}
           fitView={{ padding: 10 }}
           onNodesChange={onNodesChange}
+          onNodeDragStart={snapshot}
           connectionLineComponent={FloatingEdgePreview}
           onConnect={onConnect}
           //onEdgesChange={onEdgesChange}
@@ -417,13 +433,39 @@ function Petri() {
               variant="filled"
             />
           </Panel>
+          <Panel position="bottom-left">
+            <IconButton
+              disabled={!canUndo}
+              aria-label="Undo"
+              onClick={() => {
+                const snapshot = undo();
+                if (snapshot) {
+                  setPlaces(snapshot.places);
+                  setTransitions(snapshot.transitions);
+                  setInitialMarking(snapshot.initialMarking);
+                }
+              }}
+            >
+              <FiRotateCcw />
+            </IconButton>
+            <IconButton
+              disabled={!canRedo}
+              aria-label="Redo"
+              onClick={() => {
+                const snapshot = redo();
+                if (snapshot) {
+                  setPlaces(snapshot.places);
+                  setTransitions(snapshot.transitions);
+                  setInitialMarking(snapshot.initialMarking);
+                }
+              }}
+            >
+              <FiRotateCw />
+            </IconButton>
+          </Panel>
           <Panel position="bottom-right">
             <ClickAwayListener onClickAway={() => setPalette(false)}>
-              <Stack
-                direction="column"
-                spacing={1}
-                alignItems="end"
-              >
+              <Stack direction="column" spacing={1} alignItems="end">
                 <AnimatePresence>
                   {palette && (
                     <MotionStack
@@ -432,7 +474,11 @@ function Petri() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      style={{backgroundColor: "#77777777", padding:15,borderRadius:10}}
+                      style={{
+                        backgroundColor: "#77777777",
+                        padding: 15,
+                        borderRadius: 10,
+                      }}
                     >
                       <MuiColorInput
                         key="start"
@@ -478,7 +524,7 @@ function Petri() {
                     setMarking(initialMarking);
                   }}
                 >
-                  <FiRotateCcw />
+                  <FiRewind />
                 </IconButton>
               </span>
             </Tooltip>
@@ -494,7 +540,7 @@ function Petri() {
                   }
                 }}
               >
-                {simulating ? <FiPauseCircle /> : <FiPlayCircle />}
+                {simulating ? <FiPause /> : <FiPlay />}
               </IconButton>
             </Tooltip>
             <Tooltip title={addMode ? "Cancel" : "Add a Place"}>
@@ -502,7 +548,7 @@ function Petri() {
                 color={addMode ? "primary" : "default"}
                 onClick={() => setAddMode(!addMode)}
               >
-                <FiPlusCircle />
+                <FiPlus />
               </IconButton>
             </Tooltip>
             <Tooltip title="Copy to Clipboard">

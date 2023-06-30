@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import React, { memo, useMemo, useState, useEffect } from "react";
 import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   transitionsAtom,
   selectedNodeAtom,
@@ -15,6 +15,7 @@ import {
   markingAtom,
   startColorAtom,
   endColorAtom,
+  snapshotAtom,
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
@@ -48,6 +49,7 @@ export default memo(({ isConnectable }) => {
   const transitionArrangement = useAtomValue(transitionArrangementAtom);
   const [selectedNode, setSelectedNode] = useAtom(selectedNodeAtom);
   const marking = useAtomValue(markingAtom);
+  const snapshot = useSetAtom(snapshotAtom);
   const [pinned, setPinned] = useState(false);
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -99,6 +101,7 @@ export default memo(({ isConnectable }) => {
             label="Transition Info"
             variant="outlined"
             onChange={(e) => {
+              snapshot();
               setTransition({ ...transition, name: e.target.value });
             }}
             InputProps={{
@@ -123,6 +126,7 @@ export default memo(({ isConnectable }) => {
                     <InputAdornment style={{ cursor: "pointer" }} position="end">
                       <FiMinus
                         onClick={() => {
+                          snapshot();
                           setTransition({
                             ...transition,
                             time: transition.time - 1,
@@ -143,6 +147,7 @@ export default memo(({ isConnectable }) => {
                     >
                       <FiPlus
                         onClick={() => {
+                          snapshot();
                           setTransition({
                             ...transition,
                             time: transition.time + 1,
@@ -156,6 +161,7 @@ export default memo(({ isConnectable }) => {
                       style={{ cursor: "pointer" }}
                       position="end"
                       onClick={() => {
+                        snapshot();
                         const { [transition.id]: _, ...rest } = transitions;
                         setTransitions(rest);
                       }}

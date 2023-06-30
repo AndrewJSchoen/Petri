@@ -1,5 +1,6 @@
 import { atom } from "jotai";
-import { atomWithReset } from "jotai/utils";
+import { focusAtom } from "jotai-optics";
+import { atomWithReducer, atomWithReset } from "jotai/utils";
 import { mapValues, cloneDeep, range } from "lodash";
 
 export const tokens = atom({});
@@ -128,7 +129,7 @@ const data = {
     },
     "e86d0bf4-1d14-4d08-a38b-d34ef88fbbca": {
       id: "e86d0bf4-1d14-4d08-a38b-d34ef88fbbca",
-      name: "750169F8-4EEE-4873-A6E7-F58A047383C2->A",
+      name: "Spawn 1",
       input: { "750169f8-4eee-4873-a6e7-f58a047383c2": 1 },
       output: { a: 1 },
       position: { x: -100, y: 40 },
@@ -175,13 +176,50 @@ const data = {
 
 export const selectedNodeAtom = atom(null);
 
-export const placesAtom = atomWithReset(data.places);
+const historyAtom = atom([]);
 
-export const transitionsAtom = atomWithReset(data.transitions);
+const historyIndexAtom = atom(0);
 
-export const initialMarkingAtom = atom(data.marking)
+export const appAtom = atom({
+  past: [],
+  current: {places:data.places, transitions:data.transitions, initialMarking:data.marking, marking:data.marking},
+  future: [],
+})
 
-export const markingAtom = atom(data.marking);
+export const undoAtom = atom(null, (_get, set) => {
+  set(appAtom, function undoReducer(app) {
+    let newPast = [...app.past];
+    const newCurrent = newPast.pop();
+    const newFuture = [app.current, ...app.future];
+    return {past: newPast, current: newCurrent, future: newFuture};
+  })
+})
+
+export const redoAtom = atom(null, (_get, set) => {
+  set(appAtom, function redoReducer(app) {
+    const [newCurrent, ...newFuture] = [...app.future];
+    const newPast = [...app.past, app.current];
+    return {past: newPast, current: newCurrent, future: newFuture};
+  })
+})
+
+export const snapshotAtom = atom(null, (_get, set) => {
+  set(appAtom, function snapshotReducer(app) {
+    let newPast = [...app.past, app.current];
+    if (newPast.length > 30) {
+      newPast = newPast.slice(1);
+    }
+    return {past: newPast, current: app.current, future: []};
+  })
+});
+
+export const placesAtom = focusAtom(appAtom, (optic) => optic.prop('current').prop('places'));
+export const transitionsAtom = focusAtom(appAtom, (optic) => optic.prop('current').prop('transitions'));
+export const initialMarkingAtom = focusAtom(appAtom, (optic) => optic.prop('current').prop('initialMarking'));
+export const markingAtom = focusAtom(appAtom, (optic) => optic.prop('current').prop('marking'));
+
+export const canUndoAtom = atom(get=>get(appAtom).past.length > 0);
+export const canRedoAtom = atom(get=>get(appAtom).future.length > 0);
 
 export const simulatingAtom = atom(false);
 
@@ -237,10 +275,26 @@ export const transitionArrangementsAtom = atom((get) => {
     const inputKeys = Object.keys(transition.input);
     const outputKeys = Object.keys(transition.output);
     const angles = [
-      ...inputKeys.map(k=>(Math.atan2(transition.position.y - places[k].position.y, transition.position.x - places[k].position.x ) * 180) / Math.PI),
-      ...outputKeys.map(k=>(Math.atan2(places[k].position.y - transition.position.y, places[k].position.x - transition.position.x) * 180) / Math.PI)
-    ]
-    
+      ...inputKeys.map(
+        (k) =>
+          (Math.atan2(
+            transition.position.y - places[k].position.y,
+            transition.position.x - places[k].position.x
+          ) *
+            180) /
+          Math.PI
+      ),
+      ...outputKeys.map(
+        (k) =>
+          (Math.atan2(
+            places[k].position.y - transition.position.y,
+            places[k].position.x - transition.position.x
+          ) *
+            180) /
+          Math.PI
+      ),
+    ];
+
     const angle = angles.reduce((a, b) => a + b, 0) / angles.length;
 
     const sourceX =
@@ -259,7 +313,7 @@ export const transitionArrangementsAtom = atom((get) => {
       outputKeys
         .map((placeId) => places[placeId].position.y)
         .reduce((a, b) => a + b, 0) / outputKeys.length;
-      //(Math.atan2(targetY - sourceY, targetX - sourceX) * 180) / Math.PI;
+    //(Math.atan2(targetY - sourceY, targetX - sourceX) * 180) / Math.PI;
     return {
       sourceX,
       sourceY,
@@ -273,4 +327,3 @@ export const transitionArrangementsAtom = atom((get) => {
 export const nodeListAtom = atom((get) => Object.values(get(nodesAtom)));
 
 export const edgeListAtom = atom((get) => Object.values(get(edgesAtom)));
-
