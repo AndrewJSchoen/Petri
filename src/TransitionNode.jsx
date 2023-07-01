@@ -21,9 +21,13 @@ import { focusAtom } from "jotai-optics";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { FiTrash2, FiMinus, FiPlus } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
-
-const MotionHandle = motion(Handle);
-const MotionAvatar = motion(Avatar);
+import {
+  MotionButtonGroup,
+  MotionHandle,
+  MotionAvatar,
+} from "./MotionElements";
+import { SimpleInput } from "./SimpleInput";
+import { ToolbarButton, ToolbarChip } from "./ToolbarButton";
 
 const connectionNodeIdSelector = (state) => state.connectionNodeId;
 
@@ -92,95 +96,86 @@ export default memo(({ isConnectable }) => {
         <NodeToolbar
           className="nodrag nopan"
           isVisible={selectedNode === nodeId || pinned}
+          position="top"
         >
-          <TextField
-            autoFocus
-            size="small"
-            color="primary"
-            value={transition.name}
-            label="Transition Info"
-            variant="outlined"
-            onChange={(e) => {
-              snapshot();
-              setTransition({ ...transition, name: e.target.value });
+          <MotionButtonGroup
+            direction="row"
+            gap={0.5}
+            variants={{
+              visible: { opacity: 1, y: 0 },
+              hidden: { opacity: 0, y: 10 },
             }}
-            InputProps={{
-              style: {
-                color: "#ddd",
-                backgroundColor: "#77777777",
-              },
-              startAdornment: (
-                <Tooltip title={pinned ? "Unpin" : "Pin This Menu"}>
-                <InputAdornment
-                  style={{ cursor: "pointer" }}
-                  position="start"
-                  onClick={() => setPinned(!pinned)}
-                >
-                  {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-                </InputAdornment>
-                </Tooltip>
-              ),
-              endAdornment: (
-                <>
-                  <Tooltip title="Decrease Transition Time">
-                    <InputAdornment style={{ cursor: "pointer" }} position="end">
-                      <FiMinus
-                        onClick={() => {
-                          snapshot();
-                          setTransition({
-                            ...transition,
-                            time: transition.time - 1,
-                          });
-                        }}
-                      />
-                    </InputAdornment>
-                  </Tooltip>
-                  <Tooltip title="Transition Time">
-                    <InputAdornment position="end">
-                      <Chip size="small" label={`${transition.time}s`} />
-                    </InputAdornment>
-                  </Tooltip>
-                  <Tooltip title="Increase Transition Time">
-                    <InputAdornment
-                      style={{ cursor: "pointer" }}
-                      position="end"
-                    >
-                      <FiPlus
-                        onClick={() => {
-                          snapshot();
-                          setTransition({
-                            ...transition,
-                            time: transition.time + 1,
-                          });
-                        }}
-                      />
-                    </InputAdornment>
-                  </Tooltip>
-                  <Tooltip title="Delete Transition">
-                    <InputAdornment
-                      style={{ cursor: "pointer" }}
-                      position="end"
-                      onClick={() => {
-                        snapshot();
-                        const { [transition.id]: _, ...rest } = transitions;
-                        setTransitions(rest);
-                      }}
-                    >
-                      <FiTrash2 />
-                    </InputAdornment>
-                  </Tooltip>
-                </>
-              ),
-            }}
-            inputProps={{
-              style: {
-                maxWidth: 100,
-                textAlign: "center",
-              },
-            }}
-          />
+            initial="hidden"
+            animate={selectedNode === nodeId || pinned ? "visible" : "hidden"}
+          >
+            <Tooltip
+              className="no-outline"
+              title={pinned ? "Unpin" : "Pin This Menu"}
+              color="primary"
+              placement="top"
+            >
+              <ToolbarButton
+                aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                color="primary"
+                onClick={() => {
+                  setPinned(!pinned);
+                  setTooltipOpen(false);
+                }}
+              >
+                {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+              </ToolbarButton>
+            </Tooltip>
+            <SimpleInput
+              value={transition.name}
+              onChange={(e) => {
+                snapshot();
+                setTransition({ ...transition, name: e.target.value });
+              }}
+            />
+            <Tooltip title="Decrease Transition Time" className="no-outline">
+              <ToolbarButton
+                onClick={() => {
+                  snapshot();
+                  setTransition({
+                    ...transition,
+                    time: transition.time - 1,
+                  });
+                }}
+              >
+                <FiMinus />
+              </ToolbarButton>
+            </Tooltip>
+            <Tooltip title="Transition Time" className="no-outline">
+              <ToolbarChip size="small" label={`${transition.time}s`} />
+            </Tooltip>
+            <Tooltip title="Increase Transition Time" className="no-outline">
+              <ToolbarButton
+                onClick={() => {
+                  snapshot();
+                  setTransition({
+                    ...transition,
+                    time: transition.time + 1,
+                  });
+                }}
+              >
+                <FiPlus />
+              </ToolbarButton>
+            </Tooltip>
+            <Tooltip title="Delete Transition" className="no-outline">
+              <ToolbarButton
+                onClick={() => {
+                  snapshot();
+                  const { [transition.id]: _, ...rest } = transitions;
+                  setTransitions(rest);
+                }}
+              >
+                <FiTrash2 />
+              </ToolbarButton>
+            </Tooltip>
+          </MotionButtonGroup>
         </NodeToolbar>
-        <Tooltip open={tooltipOpen}
+        <Tooltip
+          open={tooltipOpen}
           onOpen={() => {
             if (!pinned && selectedNode !== nodeId) {
               setTooltipOpen(true);
@@ -188,66 +183,22 @@ export default memo(({ isConnectable }) => {
           }}
           onClose={() => setTooltipOpen(false)}
           title={transition.name}
-          placement="top">
-        <motion.div style={{ transform }}>
-          <MotionHandle
-            aria-label="Connect from Transition"
-            id="out"
-            type="source"
-            whileHover={{
-              scale: 1.2,
-              opacity: 0.2,
-              backgroundColor: startColor,
-            }}
-            position={Position.Right}
-            style={{
-              backgroundColor: "#555",
-              width: "calc(100% + 5px)",
-              height: "calc(100% + 5px)",
-              position: "absolute",
-              top: -2.5,
-              left: -2.5,
-              borderRadius: 4,
-              transform: "none",
-              border: "none",
-              opacity: 0.5,
-            }}
-            onConnect={(params) => console.log("handle onConnect", params)}
-            isConnectable={isConnectable}
-          />
-          <MotionAvatar
-            className="transition-drag-handle"
-            aria-label="Transition"
-            style={{
-              // transform: `rotate(${transitionArrangement.angle}deg)`,
-              borderRadius: 2,
-              background: "black",
-              boxShadow,
-              height: 40,
-              width: 20,
-              // alignItems: "center",
-            }}
-            onClick={
-              selectedNode === nodeId
-                ? () => setSelectedNode(null)
-                : () => {
-                  setSelectedNode(nodeId);
-                  setTooltipOpen(false)
-                }
-            }
-          >
-            {""}
-          </MotionAvatar>
-          {isConnecting && (
+          placement="top"
+          className="no-outline"
+        >
+          <motion.div style={{ transform }}>
             <MotionHandle
-              aria-label="Connect to Transition"
-              id="in"
+              aria-label="Connect from Transition"
+              id="out"
+              type="source"
               whileHover={{
-                opacity: 0.25,
-                background: isTarget ? startColor : endColor,
+                scale: 1.2,
+                opacity: 0.2,
+                backgroundColor: startColor,
               }}
+              position={Position.Right}
               style={{
-                background: startColor,
+                backgroundColor: "#555",
                 width: "calc(100% + 5px)",
                 height: "calc(100% + 5px)",
                 position: "absolute",
@@ -256,14 +207,60 @@ export default memo(({ isConnectable }) => {
                 borderRadius: 4,
                 transform: "none",
                 border: "none",
-                opacity: 0.1,
+                opacity: 0.5,
               }}
-              position={Position.Left}
-              type="target"
+              onConnect={(params) => console.log("handle onConnect", params)}
               isConnectable={isConnectable}
             />
-          )}
-        </motion.div>
+            <MotionAvatar
+              className="transition-drag-handle"
+              aria-label="Transition"
+              style={{
+                // transform: `rotate(${transitionArrangement.angle}deg)`,
+                borderRadius: 2,
+                background: "black",
+                boxShadow,
+                height: 40,
+                width: 20,
+                // alignItems: "center",
+              }}
+              onClick={
+                selectedNode === nodeId
+                  ? () => setSelectedNode(null)
+                  : () => {
+                      setSelectedNode(nodeId);
+                      setTooltipOpen(false);
+                    }
+              }
+            >
+              {""}
+            </MotionAvatar>
+            {isConnecting && (
+              <MotionHandle
+                aria-label="Connect to Transition"
+                id="in"
+                whileHover={{
+                  opacity: 0.25,
+                  background: isTarget ? startColor : endColor,
+                }}
+                style={{
+                  background: startColor,
+                  width: "calc(100% + 5px)",
+                  height: "calc(100% + 5px)",
+                  position: "absolute",
+                  top: -2.5,
+                  left: -2.5,
+                  borderRadius: 4,
+                  transform: "none",
+                  border: "none",
+                  opacity: 0.1,
+                }}
+                position={Position.Left}
+                type="target"
+                isConnectable={isConnectable}
+              />
+            )}
+          </motion.div>
         </Tooltip>
       </>
     )

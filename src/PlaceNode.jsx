@@ -1,15 +1,10 @@
 import {
   Avatar,
-  InputAdornment,
-  TextField,
-  ToggleButtonGroup,
   ToggleButton,
-  Stack,
   Tooltip,
 } from "@mui/material";
-import { styled } from '@mui/material/styles';
 import React, { memo, useMemo, useState } from "react";
-import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
+import { Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
 import {
@@ -27,29 +22,9 @@ import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoInfinite, IoExitOutline } from "react-icons/io5";
 import { FiMinus, FiPlus, FiTrash2, FiHash } from "react-icons/fi";
 import { mapValues } from "lodash";
-import { motion } from "framer-motion";
-
-const MotionHandle = motion(Handle);
-
-const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
-  backgroundColor: theme.palette.background.default,
-  backgroundOpacity: 0.5,
-  height: 30,
-  '& .MuiToggleButtonGroup-grouped': {
-    margin: theme.spacing(0.5),
-    border: 0,
-    height: 18,
-    '&.Mui-disabled': {
-      border: 0,
-    },
-    '&:not(:first-of-type)': {
-      borderRadius: theme.shape.borderRadius,
-    },
-    '&:first-of-type': {
-      borderRadius: theme.shape.borderRadius,
-    },
-  },
-}));
+import { SimpleInput } from "./SimpleInput";
+import { ToolbarButton } from "./ToolbarButton";
+import { MotionHandle, MotionButtonGroup, MotionToggleButtonGroup } from "./MotionElements";
 
 const connectionNodeIdSelector = (state) => state.connectionNodeId;
 
@@ -72,8 +47,8 @@ export default memo(({ isConnectable }) => {
   const [selectedNode, setSelectedNode] = useAtom(selectedNodeAtom);
   const simulating = useAtomValue(simulatingAtom);
   const [pinned, setPinned] = useState(false);
-  const [startColor, setStartColor] = useAtom(startColorAtom);
-  const [endColor, setEndColor] = useAtom(endColorAtom);
+  const startColor = useAtomValue(startColorAtom);
+  const endColor = useAtomValue(endColorAtom);
   const snapshot = useSetAtom(snapshotAtom);
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -84,169 +59,172 @@ export default memo(({ isConnectable }) => {
         <NodeToolbar
           className="nodrag nopan"
           isVisible={selectedNode === nodeId || pinned}
+          position="top"
         >
-          <Stack direction="column" alignItems="center" spacing={2}>
-            <StyledToggleButtonGroup
-              exclusive
+          <MotionButtonGroup
+            direction="row"
+            gap={0.5}
+            variants={{
+              visible: { opacity: 1, y: 0 },
+              hidden: { opacity: 0, y: 10 },
+            }}
+            initial="hidden"
+            animate={selectedNode === nodeId || pinned ? "visible" : "hidden"}
+          >
+            <Tooltip
+              className="no-outline"
+              title={pinned ? "Unpin" : "Pin This Menu"}
               color="primary"
-              value={place.tokens}
-              onChange={(_, newValue) => {
-                snapshot();
-                setPlace({ ...place, tokens: newValue });
-              }}
+              placement="top"
             >
-              
-                <ToggleButton
-                  value="infinite"
-                  aria-label="Change to Infinite Token Place"
-                >
-                  
-                    <IoInfinite />
-                  
-                </ToggleButton>
-              
-              
-                <ToggleButton
-                  value="finite"
-                  aria-label="Change to Finite Token Place"
-                >
-                  <FiHash/>
-                </ToggleButton>
-              
-                <ToggleButton
-                  aria-label="Change to Sink Token Place"
-                  value="sink"
-                >
-                  <IoExitOutline />
-                </ToggleButton>
-              
-            </StyledToggleButtonGroup>
-            <TextField
-              aria-label="Place Info"
-              autoFocus
-              color="primary"
-              size="small"
+              <ToolbarButton
+                aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                color="primary"
+                onClick={() => {
+                  setPinned(!pinned);
+                  setTooltipOpen(false);
+                }}
+              >
+                {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+              </ToolbarButton>
+            </Tooltip>
+            <SimpleInput
               value={place.name}
-              label="Place Info"
-              variant="outlined"
               onChange={(e) => {
                 snapshot();
                 setPlace({ ...place, name: e.target.value });
               }}
-              InputProps={{
-                "aria-label": "Place Name",
-                style: {
-                  color: "#ddd",
-                  backgroundColor: "#77777777",
-                },
-                startAdornment: (
-                  <Tooltip
-                    title={pinned ? "Unpin" : "Pin This Menu"}
-                    placement="bottom"
-                  >
-                    <InputAdornment
-                      style={{cursor: 'pointer'}}
-                      aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
-                      position="start"
-                      onClick={() => {
-                        setPinned(!pinned);
-                        setTooltipOpen(false);
-                      }}
-                    >
-                      {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-                    </InputAdornment>
-                  </Tooltip>
-                ),
-                endAdornment: (
-                  <>
-                    {place.tokens !== "infinite" && place.tokens !== "sink" && (
-                      <Tooltip title="Decrease Tokens" placement="bottom">
-                        <InputAdornment
-                          style={{cursor: 'pointer'}}
-                          position="end"
-                          aria-label="Decrease Tokens"
-                        >
-                          <FiMinus
-                            onClick={() => {
-                              if (simulating) {
-                                setMarking({
-                                  ...marking,
-                                  [place.id]: marking[place.id] - 1,
-                                });
-                              } else {
-                                snapshot();
-                                setInitialMarking({
-                                  ...initialMarking,
-                                  [place.id]: initialMarking[place.id] - 1,
-                                });
-                              }
-                            }}
-                          />
-                        </InputAdornment>
-                      </Tooltip>
-                    )}
-                    {place.tokens !== "infinite" && place.tokens !== "sink" && (
-                      <Tooltip title="Increase Tokens" placement="bottom">
-                        <InputAdornment
-                          style={{cursor: 'pointer'}}
-                          position="end"
-                          aria-label="Increase Tokens"
-                        >
-                          <FiPlus
-                            onClick={() => {
-                              if (simulating) {
-                                setMarking({
-                                  ...marking,
-                                  [place.id]: marking[place.id] + 1,
-                                });
-                              } else {
-                                snapshot();
-                                setInitialMarking({
-                                  ...initialMarking,
-                                  [place.id]: initialMarking[place.id] + 1,
-                                });
-                              }
-                            }}
-                          />
-                        </InputAdornment>
-                      </Tooltip>
-                    )}
-                    <Tooltip title="Delete" placement="bottom">
-                      <InputAdornment
-                        style={{cursor: 'pointer'}}
-                        aria-label="Delete Place"
-                        position="end"
-                        onClick={() => {
-                          snapshot();
-                          const { [place.id]: _, ...rest } = places;
-                          const newTransitions = mapValues(
-                            transitions,
-                            (transition) => {
-                              const { [place.id]: _i, ...input } =
-                                transition.input;
-                              const { [place.id]: _o, ...output } =
-                                transition.output;
-                              return { ...transition, input, output };
-                            }
-                          );
-                          setPlaces(rest);
-                          setTransitions(newTransitions);
-                        }}
-                      >
-                        <FiTrash2 />
-                      </InputAdornment>
-                    </Tooltip>
-                  </>
-                ),
-              }}
-              inputProps={{
-                style: {
-                  maxWidth: 100,
-                  textAlign: "center",
-                },
-              }}
             />
-          </Stack>
+            {place.tokens !== "infinite" && place.tokens !== "sink" && (
+              <Tooltip
+                title="Decrease Tokens"
+                placement="top"
+                className="no-outline"
+              >
+                <ToolbarButton
+                  aria-label="Decrease Tokens"
+                  onClick={() => {
+                    if (simulating && marking[place.id] > 0) {
+                      setMarking((m) => ({
+                        ...m,
+                        [place.id]: m[place.id] - 1,
+                      }));
+                    } else if (initialMarking[place.id] > 0){
+                      snapshot();
+                      setInitialMarking((im) => ({
+                        ...im,
+                        [place.id]: im[place.id] - 1,
+                      }));
+                      setMarking((m) => ({
+                        ...m,
+                        [place.id]: m[place.id] - 1,
+                      }));
+                    }
+                  }}
+                >
+                  <FiMinus style={{opacity: simulating && marking[place.id] > 0 || !simulating && initialMarking[place.id] > 0 ? 1 : 0.5}}/>
+                </ToolbarButton>
+              </Tooltip>
+            )}
+            {place.tokens !== "infinite" && place.tokens !== "sink" && (
+              <Tooltip
+                title="Increase Tokens"
+                placement="top"
+                className="no-outline"
+              >
+                <ToolbarButton
+                  aria-label="Increase Tokens"
+                  onClick={() => {
+                    if (simulating) {
+                      setMarking((m) => ({
+                        ...m,
+                        [place.id]: m[place.id] + 1,
+                      }));
+                    } else {
+                      snapshot();
+                      setInitialMarking((im) => ({
+                        ...im,
+                        [place.id]: im[place.id] + 1,
+                      }));
+                      setMarking((m) => ({
+                        ...m,
+                        [place.id]: m[place.id] + 1,
+                      }));
+                    }
+                  }}
+                >
+                  <FiPlus />
+                </ToolbarButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Delete" placement="top" className="no-outline">
+              <ToolbarButton
+                aria-label="Delete Place"
+                onClick={() => {
+                  snapshot();
+                  const { [place.id]: _, ...rest } = places;
+                  const newTransitions = mapValues(
+                    transitions,
+                    (transition) => {
+                      const { [place.id]: _i, ...input } = transition.input;
+                      const { [place.id]: _o, ...output } = transition.output;
+                      return { ...transition, input, output };
+                    }
+                  );
+                  setPlaces(rest);
+                  setTransitions(newTransitions);
+                }}
+              >
+                <FiTrash2 />
+              </ToolbarButton>
+            </Tooltip>
+          </MotionButtonGroup>
+        </NodeToolbar>
+        <NodeToolbar
+          className="nodrag nopan"
+          isVisible={selectedNode === nodeId || pinned}
+          position="bottom"
+        >
+          <MotionToggleButtonGroup
+            className="no-outline"
+            exclusive
+            color="primary"
+            value={place.tokens}
+            onChange={(_, newValue) => {
+              snapshot();
+              setPlace({ ...place, tokens: newValue });
+            }}
+            variants={{
+              visible: { opacity: 1, y: 0 },
+              hidden: { opacity: 0, y: -10 },
+            }}
+            initial="hidden"
+            animate={selectedNode === nodeId || pinned ? "visible" : "hidden"}
+          >
+            <ToggleButton
+              className="no-outline"
+              value="infinite"
+              aria-label="Change to Infinite Token Place"
+            >
+              <IoInfinite />
+            </ToggleButton>
+
+            <ToggleButton
+              className="no-outline"
+              value="finite"
+              aria-label="Change to Finite Token Place"
+            >
+              <FiHash />
+            </ToggleButton>
+
+            <ToggleButton
+              className="no-outline"
+              aria-label="Change to Sink Token Place"
+              value="sink"
+            >
+              <IoExitOutline />
+            </ToggleButton>
+          </MotionToggleButtonGroup>
         </NodeToolbar>
 
         <MotionHandle
@@ -280,6 +258,7 @@ export default memo(({ isConnectable }) => {
           onClose={() => setTooltipOpen(false)}
           title={place.name}
           placement="top"
+          className="no-outline"
         >
           <Avatar
             aria-label="Place"

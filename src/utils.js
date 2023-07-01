@@ -1,6 +1,14 @@
 import { useEffect } from "react";
-import { atom, useAtom } from "jotai";
-import { Position, getStraightPath, internalsSymbol } from "reactflow";
+import { atom, useAtom, useSetAtom } from "jotai";
+import { transitionsAtom, placesAtom } from "./atom";
+import {
+  Position,
+  getStraightPath,
+  internalsSymbol,
+  useStore,
+  useReactFlow,
+} from "reactflow";
+import { forceSimulation, forceManyBody, forceLink } from "d3-force";
 
 // returns the position (top,right,bottom or right) passed node compared to
 function getParams(nodeA, nodeB) {
@@ -138,7 +146,10 @@ export function getCustomEdge(
   let sourceControlLocation;
   let targetHandleLocation;
   let targetControlLocation;
-  const distance = Math.sqrt((sourceNodePosition.x - targetNodePosition.x)**2 + (sourceNodePosition.y - targetNodePosition.y)**2);
+  const distance = Math.sqrt(
+    (sourceNodePosition.x - targetNodePosition.x) ** 2 +
+      (sourceNodePosition.y - targetNodePosition.y) ** 2
+  );
   if (type === "input") {
     sourceHandleLocation = getPositionAtCirclePerimeter(
       sourceNodePosition.x,
@@ -165,7 +176,7 @@ export function getCustomEdge(
       targetNodePosition.y,
       targetHandleLocation.x,
       targetHandleLocation.y,
-      -1 * sigmoid(distance,60,1)
+      -1 * sigmoid(distance, 60, 1)
     );
   } else {
     sourceHandleLocation = projectPointByAngle(
@@ -179,7 +190,7 @@ export function getCustomEdge(
       sourceNodePosition.y,
       sourceHandleLocation.x,
       sourceHandleLocation.y,
-    -1 * sigmoid(distance,60,1)
+      -1 * sigmoid(distance, 60, 1)
     );
     targetHandleLocation = getPositionAtCirclePerimeter(
       targetNodePosition.x,
@@ -212,7 +223,12 @@ export function getCustomEdge(
   return [path, centerX, centerY, offsetX, offsetY];
 }
 
-export function getCustomEdgePreview(sourceNodePosition, cursorPosition, type, transitionArrangement) {
+export function getCustomEdgePreview(
+  sourceNodePosition,
+  cursorPosition,
+  type,
+  transitionArrangement
+) {
   let sourceHandleLocation;
   let sourceControlLocation;
   if (type === "input") {
@@ -246,11 +262,11 @@ export function getCustomEdgePreview(sourceNodePosition, cursorPosition, type, t
     );
   }
   const [path, centerX, centerY] = getStraightPath({
-    sourceX:sourceHandleLocation.x,
-    sourceY:sourceHandleLocation.y,
-    targetX:cursorPosition.x,
-    targetY:cursorPosition.y,
-  })
+    sourceX: sourceHandleLocation.x,
+    sourceY: sourceHandleLocation.y,
+    targetX: cursorPosition.x,
+    targetY: cursorPosition.y,
+  });
   return [path, centerX, centerY];
 }
 
@@ -318,6 +334,75 @@ const degreesToRadians = (degrees) => {
   return degrees * (Math.PI / 180);
 };
 
-function sigmoid(x,a,b) {
-  return a / (1 + Math.exp((-x/a)+b));
+function sigmoid(x, a, b) {
+  return a / (1 + Math.exp(-x / a + b));
 }
+
+export function useForceLayout() {
+  const elementCount = useStore(countSelector);
+  const initialized = useStore(initializedSelector);
+
+  const { getNodes, getEdges } = useReactFlow();
+  const setPlaces = useSetAtom(placesAtom);
+  const setTransitions = useSetAtom(transitionsAtom);
+
+  useEffect(() => {
+    const nodes = getNodes();
+    const edges = getEdges();
+
+    if (!nodes.length || !initialized) {
+      return;
+    }
+
+    const simulationNodes = nodes.map((node) => ({
+      ...node,
+      x: node.position.x,
+      y: node.position.y,
+    }));
+
+    const simulationEdges = [...edges];
+
+    const simulation = forceSimulation()
+      .nodes(simulationNodes)
+      .force(
+        "link",
+        forceLink(simulationEdges)
+          .id((d) => d.id)
+          .distance(100)
+          .strength(0.1)
+      )
+      .force("charge", forceManyBody().strength(-100))
+      .on("tick", () => {
+        // setPlaces((dataPlaces) => {
+        //   let newPlaces = { ...dataPlaces };
+        //   simulationNodes.forEach((node) => {
+        //     if (newPlaces[node.id]) {
+        //       newPlaces[node.id].position.x = node.x;
+        //       newPlaces[node.id].position.y = node.y;
+        //     }
+        //   });
+        //   return newPlaces;
+        // });
+        // setTransitions((dataTransitions) => {
+        //   let newTransitions = { ...dataTransitions };
+        //   simulationNodes.forEach((node) => {
+        //     if (newTransitions[node.id]) {
+        //       newTransitions[node.id].position.x = node.x;
+        //       newTransitions[node.id].position.y = node.y;
+        //     }
+        //   });
+        //   return newTransitions;
+        // });
+      });
+
+    return () => {
+      simulation.stop();
+    };
+  }, [elementCount, initialized, setPlaces, setTransitions]);
+}
+
+const countSelector = (state) => state.nodeInternals.size + state.edges.length;
+const initializedSelector = (state) =>
+  Array.from(state.nodeInternals.values()).every(
+    (node) => node.width && node.height
+  ) && state.nodeInternals.size;

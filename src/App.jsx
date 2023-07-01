@@ -32,7 +32,7 @@ import {
   snapshotAtom
 } from "./atom";
 import TransitionNode from "./TransitionNode";
-import { copyTextToClipboard } from "./utils";
+import { copyTextToClipboard, useForceLayout } from "./utils";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { cloneDeep, shuffle, mapValues, clamp, pick } from "lodash";
@@ -71,8 +71,7 @@ import { forceSimulation } from "d3-force";
 import { forceManyBody, forceLink } from "d3-force";
 import { MuiColorInput } from "mui-color-input";
 import { AnimatePresence, motion } from "framer-motion";
-
-const MotionStack = motion(Stack);
+import { MotionStack } from "./MotionElements";
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
@@ -105,6 +104,8 @@ function Petri() {
   const undo = useSetAtom(undoAtom);
   const redo = useSetAtom(redoAtom);
   const snapshot = useSetAtom(snapshotAtom);
+
+  // useForceLayout()
 
   const theme = createTheme({
     palette: {
@@ -437,28 +438,14 @@ function Petri() {
             <IconButton
               disabled={!canUndo}
               aria-label="Undo"
-              onClick={() => {
-                const snapshot = undo();
-                if (snapshot) {
-                  setPlaces(snapshot.places);
-                  setTransitions(snapshot.transitions);
-                  setInitialMarking(snapshot.initialMarking);
-                }
-              }}
+              onClick={undo}
             >
               <FiRotateCcw />
             </IconButton>
             <IconButton
               disabled={!canRedo}
               aria-label="Redo"
-              onClick={() => {
-                const snapshot = redo();
-                if (snapshot) {
-                  setPlaces(snapshot.places);
-                  setTransitions(snapshot.transitions);
-                  setInitialMarking(snapshot.initialMarking);
-                }
-              }}
+              onClick={redo}
             >
               <FiRotateCw />
             </IconButton>
@@ -471,9 +458,9 @@ function Petri() {
                     <MotionStack
                       spacing={1}
                       direction="column"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       style={{
                         backgroundColor: "#77777777",
                         padding: 15,
@@ -501,7 +488,7 @@ function Petri() {
                     </MotionStack>
                   )}
                 </AnimatePresence>
-                <Tooltip title="Set Colors">
+                <Tooltip title="Set Colors" className='no-outline'>
                   <IconButton
                     aria-label="Toggle Color Selector"
                     color={palette ? "primary" : "default"}
@@ -514,7 +501,7 @@ function Petri() {
             </ClickAwayListener>
           </Panel>
           <Panel position="top-right">
-            <Tooltip title="Restart">
+            <Tooltip title="Restart" className='no-outline'>
               <span>
                 <IconButton
                   aria-label="Restart Simulation"
@@ -524,11 +511,11 @@ function Petri() {
                     setMarking(initialMarking);
                   }}
                 >
-                  <FiRewind />
+                  <FiRewind className='no-outline'/>
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={simulating ? "Pause" : "Play"}>
+            <Tooltip title={simulating ? "Pause" : "Play"} className='no-outline'>
               <IconButton
                 aria-label="Pause/Play Simulation Toggle"
                 variant="outlined"
@@ -543,15 +530,16 @@ function Petri() {
                 {simulating ? <FiPause /> : <FiPlay />}
               </IconButton>
             </Tooltip>
-            <Tooltip title={addMode ? "Cancel" : "Add a Place"}>
+            <Tooltip title={addMode ? "Cancel" : "Add a Place"} className='no-outline'>
               <IconButton
+                variant="outlined"
                 color={addMode ? "primary" : "default"}
                 onClick={() => setAddMode(!addMode)}
               >
                 <FiPlus />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Copy to Clipboard">
+            <Tooltip title="Copy to Clipboard" className='no-outline'>
               <IconButton
                 aria-label="Copy Petri Net to Clipboard"
                 variant="outlined"
@@ -569,7 +557,7 @@ function Petri() {
                 <FiCopy />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Upload / Download">
+            <Tooltip title="Upload / Download" className='no-outline'>
               <IconButton
                 aria-label="Open modal to upload or download a Petri Net"
                 variant="outlined"
@@ -599,7 +587,7 @@ function Petri() {
               <CardHeader
                 title="Upload / Download"
                 action={
-                  <Tooltip title="Close Modal">
+                  <Tooltip title="Close Modal" className='no-outline'>
                     <IconButton
                       aria-label="Close Modal"
                       onClick={() => setSaveModal(false)}
@@ -618,6 +606,7 @@ function Petri() {
                   style={{ display: "none" }}
                 />
                 <Button
+                  className='no-outline'
                   variant="outlined"
                   aria-label="Upload File"
                   icon={<FiUpload />}
@@ -627,6 +616,7 @@ function Petri() {
                   Upload
                 </Button>
                 <Button
+                  className='no-outline'
                   aria-label="Download File"
                   variant="outlined"
                   icon={<FiDownload />}
