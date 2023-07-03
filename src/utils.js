@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { atom, useAtom, useSetAtom } from "jotai";
-import { transitionsAtom, placesAtom } from "./atom";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
+import { transitionsAtom, placesAtom, useForceLayoutAtom } from "./atom";
 import {
   Position,
   getStraightPath,
@@ -338,13 +338,15 @@ function sigmoid(x, a, b) {
   return a / (1 + Math.exp(-x / a + b));
 }
 
-export function useForceLayout() {
+export function useForceLayout(dragging) {
+  
   const elementCount = useStore(countSelector);
   const initialized = useStore(initializedSelector);
 
   const { getNodes, getEdges } = useReactFlow();
   const setPlaces = useSetAtom(placesAtom);
   const setTransitions = useSetAtom(transitionsAtom);
+  const useForceLayout = useAtomValue(useForceLayoutAtom);
 
   useEffect(() => {
     const nodes = getNodes();
@@ -362,43 +364,45 @@ export function useForceLayout() {
 
     const simulationEdges = [...edges];
 
+    if (dragging || !useForceLayout) return ()=>{};
+
     const simulation = forceSimulation()
       .nodes(simulationNodes)
       .force(
         "link",
         forceLink(simulationEdges)
           .id((d) => d.id)
-          .distance(100)
-          .strength(0.1)
+          .distance(50)
+          .strength(0.05)
       )
-      .force("charge", forceManyBody().strength(-100))
+      .force("charge", forceManyBody().strength(-150))
       .on("tick", () => {
-        // setPlaces((dataPlaces) => {
-        //   let newPlaces = { ...dataPlaces };
-        //   simulationNodes.forEach((node) => {
-        //     if (newPlaces[node.id]) {
-        //       newPlaces[node.id].position.x = node.x;
-        //       newPlaces[node.id].position.y = node.y;
-        //     }
-        //   });
-        //   return newPlaces;
-        // });
-        // setTransitions((dataTransitions) => {
-        //   let newTransitions = { ...dataTransitions };
-        //   simulationNodes.forEach((node) => {
-        //     if (newTransitions[node.id]) {
-        //       newTransitions[node.id].position.x = node.x;
-        //       newTransitions[node.id].position.y = node.y;
-        //     }
-        //   });
-        //   return newTransitions;
-        // });
+        setPlaces((dataPlaces) => {
+          let newPlaces = { ...dataPlaces };
+          simulationNodes.forEach((node) => {
+            if (newPlaces[node.id]) {
+              newPlaces[node.id].position.x = node.x;
+              newPlaces[node.id].position.y = node.y;
+            }
+          });
+          return newPlaces;
+        });
+        setTransitions((dataTransitions) => {
+          let newTransitions = { ...dataTransitions };
+          simulationNodes.forEach((node) => {
+            if (newTransitions[node.id]) {
+              newTransitions[node.id].position.x = node.x;
+              newTransitions[node.id].position.y = node.y;
+            }
+          });
+          return newTransitions;
+        });
       });
 
     return () => {
       simulation.stop();
     };
-  }, [elementCount, initialized, setPlaces, setTransitions]);
+  }, [elementCount, initialized, setPlaces, setTransitions, dragging, useForceLayout]);
 }
 
 const countSelector = (state) => state.nodeInternals.size + state.edges.length;

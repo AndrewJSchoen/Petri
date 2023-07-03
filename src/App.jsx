@@ -29,13 +29,16 @@ import {
   canRedoAtom,
   undoAtom,
   redoAtom,
-  snapshotAtom
+  snapshotAtom,
+  highlightEdgesAtom,
+  showConnectingLabelsAtom,
+  useForceLayoutAtom,
 } from "./atom";
 import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard, useForceLayout } from "./utils";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { cloneDeep, shuffle, mapValues, clamp, pick } from "lodash";
+import { cloneDeep, shuffle, mapValues, clamp, pick, set } from "lodash";
 import { v4 as uuid4 } from "uuid";
 import {
   Card,
@@ -50,6 +53,8 @@ import {
   Stack,
   ClickAwayListener,
   Tooltip,
+  alpha,
+  FormControlLabel,
 } from "@mui/material";
 import {
   FiCopy,
@@ -72,6 +77,7 @@ import { forceManyBody, forceLink } from "d3-force";
 import { MuiColorInput } from "mui-color-input";
 import { AnimatePresence, motion } from "framer-motion";
 import { MotionStack } from "./MotionElements";
+import { Switch } from "./Switch";
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
@@ -97,6 +103,9 @@ function Petri() {
 
   const [palette, setPalette] = useState(false);
   const [saveModal, setSaveModal] = useState(false);
+  const [highlightEdges, setHighlightEdges] = useAtom(highlightEdgesAtom);
+  const [showConnectingLabels, setShowConnectingLabels] = useAtom(showConnectingLabelsAtom);
+  const [useForceLayoutSetting, setUseForceLayoutSetting] = useAtom(useForceLayoutAtom);
 
   const canUndo = useAtomValue(canUndoAtom);
   const canRedo = useAtomValue(canRedoAtom);
@@ -105,7 +114,9 @@ function Petri() {
   const redo = useSetAtom(redoAtom);
   const snapshot = useSetAtom(snapshotAtom);
 
-  // useForceLayout()
+  const [dragging, setDragging] = useState(false);
+
+  useForceLayout(dragging)
 
   const theme = createTheme({
     palette: {
@@ -320,7 +331,7 @@ function Petri() {
     setPlaces(newPlaces);
     setTransitions(newTransitions);
   };
-  
+
   const onConnect = (props) => {
     snapshot();
     if (places[props.source] && places[props.target]) {
@@ -414,7 +425,13 @@ function Petri() {
           edgeTypes={edgeTypes}
           fitView={{ padding: 10 }}
           onNodesChange={onNodesChange}
-          onNodeDragStart={snapshot}
+          onNodeDragStart={()=>{
+            setDragging(true);
+            snapshot();
+          }}
+          onNodeDragStop={()=>{
+            setDragging(false);
+          }}
           connectionLineComponent={FloatingEdgePreview}
           onConnect={onConnect}
           //onEdgesChange={onEdgesChange}
@@ -435,18 +452,10 @@ function Petri() {
             />
           </Panel>
           <Panel position="bottom-left">
-            <IconButton
-              disabled={!canUndo}
-              aria-label="Undo"
-              onClick={undo}
-            >
+            <IconButton disabled={!canUndo} aria-label="Undo" onClick={undo}>
               <FiRotateCcw />
             </IconButton>
-            <IconButton
-              disabled={!canRedo}
-              aria-label="Redo"
-              onClick={redo}
-            >
+            <IconButton disabled={!canRedo} aria-label="Redo" onClick={redo}>
               <FiRotateCw />
             </IconButton>
           </Panel>
@@ -462,9 +471,9 @@ function Petri() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       style={{
-                        backgroundColor: "#77777777",
                         padding: 15,
                         borderRadius: 10,
+                        backgroundColor: alpha("#101010", 0.5),
                       }}
                     >
                       <MuiColorInput
@@ -485,10 +494,52 @@ function Petri() {
                         onChange={(v) => setEndColor(v)}
                         isAlphaHidden
                       />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            sx={{ marginLeft: 2 }}
+                            checked={highlightEdges}
+                            onChange={(e) =>
+                              setHighlightEdges(e.target.checked)
+                            }
+                          />
+                        }
+                        checked={highlightEdges}
+                        label="Highlight Connecting Edges"
+                        labelPlacement="start"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            sx={{ marginLeft: 2 }}
+                            checked={showConnectingLabels}
+                            onChange={(e) =>
+                              setShowConnectingLabels(e.target.checked)
+                            }
+                          />
+                        }
+                        checked={highlightEdges}
+                        label="Label Connecting Nodes"
+                        labelPlacement="start"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            sx={{ marginLeft: 2 }}
+                            checked={useForceLayoutSetting}
+                            onChange={(e) =>
+                              setUseForceLayoutSetting(e.target.checked)
+                            }
+                          />
+                        }
+                        checked={highlightEdges}
+                        label="Use Force Layout"
+                        labelPlacement="start"
+                      />
                     </MotionStack>
                   )}
                 </AnimatePresence>
-                <Tooltip title="Set Colors" className='no-outline'>
+                <Tooltip title="Set Colors" className="no-outline">
                   <IconButton
                     aria-label="Toggle Color Selector"
                     color={palette ? "primary" : "default"}
@@ -501,7 +552,7 @@ function Petri() {
             </ClickAwayListener>
           </Panel>
           <Panel position="top-right">
-            <Tooltip title="Restart" className='no-outline'>
+            <Tooltip title="Restart" className="no-outline">
               <span>
                 <IconButton
                   aria-label="Restart Simulation"
@@ -511,11 +562,14 @@ function Petri() {
                     setMarking(initialMarking);
                   }}
                 >
-                  <FiRewind className='no-outline'/>
+                  <FiRewind className="no-outline" />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title={simulating ? "Pause" : "Play"} className='no-outline'>
+            <Tooltip
+              title={simulating ? "Pause" : "Play"}
+              className="no-outline"
+            >
               <IconButton
                 aria-label="Pause/Play Simulation Toggle"
                 variant="outlined"
@@ -530,7 +584,10 @@ function Petri() {
                 {simulating ? <FiPause /> : <FiPlay />}
               </IconButton>
             </Tooltip>
-            <Tooltip title={addMode ? "Cancel" : "Add a Place"} className='no-outline'>
+            <Tooltip
+              title={addMode ? "Cancel" : "Add a Place"}
+              className="no-outline"
+            >
               <IconButton
                 variant="outlined"
                 color={addMode ? "primary" : "default"}
@@ -539,7 +596,7 @@ function Petri() {
                 <FiPlus />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Copy to Clipboard" className='no-outline'>
+            <Tooltip title="Copy to Clipboard" className="no-outline">
               <IconButton
                 aria-label="Copy Petri Net to Clipboard"
                 variant="outlined"
@@ -557,7 +614,7 @@ function Petri() {
                 <FiCopy />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Upload / Download" className='no-outline'>
+            <Tooltip title="Upload / Download" className="no-outline">
               <IconButton
                 aria-label="Open modal to upload or download a Petri Net"
                 variant="outlined"
@@ -587,7 +644,7 @@ function Petri() {
               <CardHeader
                 title="Upload / Download"
                 action={
-                  <Tooltip title="Close Modal" className='no-outline'>
+                  <Tooltip title="Close Modal" className="no-outline">
                     <IconButton
                       aria-label="Close Modal"
                       onClick={() => setSaveModal(false)}
@@ -606,7 +663,7 @@ function Petri() {
                   style={{ display: "none" }}
                 />
                 <Button
-                  className='no-outline'
+                  className="no-outline"
                   variant="outlined"
                   aria-label="Upload File"
                   icon={<FiUpload />}
@@ -616,7 +673,7 @@ function Petri() {
                   Upload
                 </Button>
                 <Button
-                  className='no-outline'
+                  className="no-outline"
                   aria-label="Download File"
                   variant="outlined"
                   icon={<FiDownload />}

@@ -16,6 +16,7 @@ import {
   startColorAtom,
   endColorAtom,
   snapshotAtom,
+  selectedAdjacentsAtom
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
@@ -55,6 +56,7 @@ export default memo(({ isConnectable }) => {
   const marking = useAtomValue(markingAtom);
   const snapshot = useSetAtom(snapshotAtom);
   const [pinned, setPinned] = useState(false);
+  const selectedAdjacents = useAtomValue(selectedAdjacentsAtom);
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
@@ -95,7 +97,7 @@ export default memo(({ isConnectable }) => {
       <>
         <NodeToolbar
           className="nodrag nopan"
-          isVisible={selectedNode === nodeId || pinned}
+          isVisible={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId)}
           position="top"
         >
           <MotionButtonGroup
@@ -106,78 +108,106 @@ export default memo(({ isConnectable }) => {
               hidden: { opacity: 0, y: 10 },
             }}
             initial="hidden"
-            animate={selectedNode === nodeId || pinned ? "visible" : "hidden"}
+            animate={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId) ? "visible" : "hidden"}
+          > 
+          {selectedAdjacents.includes(nodeId) || (pinned && selectedNode !== nodeId) ? (
+            <>  
+              <Tooltip
+            className="no-outline"
+            title={pinned ? "Unpin" : "Pin This Menu"}
+            color="primary"
+            placement="top"
           >
-            <Tooltip
-              className="no-outline"
-              title={pinned ? "Unpin" : "Pin This Menu"}
+            <ToolbarButton
+              aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
               color="primary"
-              placement="top"
-            >
-              <ToolbarButton
-                aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
-                color="primary"
-                onClick={() => {
-                  setPinned(!pinned);
-                  setTooltipOpen(false);
-                }}
-              >
-                {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-              </ToolbarButton>
-            </Tooltip>
-            <SimpleInput
-              value={transition.name}
-              onChange={(e) => {
-                snapshot();
-                setTransition({ ...transition, name: e.target.value });
+              onClick={() => {
+                setPinned(!pinned);
+                setTooltipOpen(false);
               }}
-            />
-            <Tooltip title="Decrease Transition Time" className="no-outline">
-              <ToolbarButton
-                onClick={() => {
-                  snapshot();
-                  setTransition({
-                    ...transition,
-                    time: transition.time - 1,
-                  });
-                }}
-              >
-                <FiMinus />
-              </ToolbarButton>
-            </Tooltip>
-            <Tooltip title="Transition Time" className="no-outline">
-              <ToolbarChip size="small" label={`${transition.time}s`} />
-            </Tooltip>
-            <Tooltip title="Increase Transition Time" className="no-outline">
-              <ToolbarButton
-                onClick={() => {
-                  snapshot();
-                  setTransition({
-                    ...transition,
-                    time: transition.time + 1,
-                  });
-                }}
-              >
-                <FiPlus />
-              </ToolbarButton>
-            </Tooltip>
-            <Tooltip title="Delete Transition" className="no-outline">
-              <ToolbarButton
-                onClick={() => {
-                  snapshot();
-                  const { [transition.id]: _, ...rest } = transitions;
-                  setTransitions(rest);
-                }}
-              >
-                <FiTrash2 />
-              </ToolbarButton>
-            </Tooltip>
+            >
+              {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+            </ToolbarButton>
+          </Tooltip>
+          <SimpleInput
+            readOnly
+            value={transition.name}
+          />
+            </>
+          ) : (
+            <>
+            <Tooltip
+            className="no-outline"
+            title={pinned ? "Unpin" : "Pin This Menu"}
+            color="primary"
+            placement="top"
+          >
+            <ToolbarButton
+              aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+              color="primary"
+              onClick={() => {
+                setPinned(!pinned);
+                setTooltipOpen(false);
+              }}
+            >
+              {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+            </ToolbarButton>
+          </Tooltip>
+          <SimpleInput
+            value={transition.name}
+            onChange={(e) => {
+              snapshot();
+              setTransition({ ...transition, name: e.target.value });
+            }}
+          />
+          <Tooltip title="Decrease Transition Time" className="no-outline">
+            <ToolbarButton
+              onClick={() => {
+                snapshot();
+                setTransition({
+                  ...transition,
+                  time: transition.time - 1,
+                });
+              }}
+            >
+              <FiMinus />
+            </ToolbarButton>
+          </Tooltip>
+          <Tooltip title="Transition Time" className="no-outline">
+            <ToolbarChip size="small" label={`${transition.time}s`} />
+          </Tooltip>
+          <Tooltip title="Increase Transition Time" className="no-outline">
+            <ToolbarButton
+              onClick={() => {
+                snapshot();
+                setTransition({
+                  ...transition,
+                  time: transition.time + 1,
+                });
+              }}
+            >
+              <FiPlus />
+            </ToolbarButton>
+          </Tooltip>
+          <Tooltip title="Delete Transition" className="no-outline">
+            <ToolbarButton
+              onClick={() => {
+                snapshot();
+                const { [transition.id]: _, ...rest } = transitions;
+                setTransitions(rest);
+              }}
+            >
+              <FiTrash2 />
+            </ToolbarButton>
+          </Tooltip></>
+          )}
+            
           </MotionButtonGroup>
         </NodeToolbar>
         <Tooltip
           open={tooltipOpen}
           onOpen={() => {
-            if (!pinned && selectedNode !== nodeId) {
+            if (!pinned && selectedNode !== nodeId && (!selectedAdjacents.includes(nodeId))) {
               setTooltipOpen(true);
             }
           }}

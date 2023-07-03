@@ -3,8 +3,6 @@ import { focusAtom } from "jotai-optics";
 import { atomWithReducer, atomWithReset } from "jotai/utils";
 import { mapValues, cloneDeep, range } from "lodash";
 
-export const tokens = atom({});
-
 export const startColorAtom = atom("#ffcc00");
 
 export const endColorAtom = atom("#40826D");
@@ -175,10 +173,9 @@ const data = {
 };
 
 export const selectedNodeAtom = atom(null);
-
-const historyAtom = atom([]);
-
-const historyIndexAtom = atom(0);
+export const highlightEdgesAtom = atom(true);
+export const useForceLayoutAtom = atom(false);
+export const showConnectingLabelsAtom = atom(true);
 
 export const appAtom = atom({
   past: [],
@@ -267,6 +264,24 @@ export const edgesAtom = atom((get) => {
   });
   return edges;
 });
+
+export const selectedAdjacentsAtom = atom((get)=>{
+  if (!get(showConnectingLabelsAtom)) {return []}
+  const transitions = get(transitionsAtom);
+  const places = get(placesAtom);
+  const selectedNode = get(selectedNodeAtom);
+  let adjacents = [];
+  if (selectedNode && places[selectedNode]) {
+    Object.values(transitions).forEach((transition) => {
+      if (Object.keys(transition.input).some(k=>k===selectedNode) || Object.keys(transition.output).some(k=>k===selectedNode)) {
+        adjacents.push(transition.id);
+      }
+    });
+  } else if (selectedNode && transitions[selectedNode]) {
+    adjacents = [...Object.keys(transitions[selectedNode].input), ...Object.keys(transitions[selectedNode].output)];
+  }
+  return adjacents
+})
 
 export const transitionArrangementsAtom = atom((get) => {
   const transitions = get(transitionsAtom);

@@ -1,8 +1,4 @@
-import {
-  Avatar,
-  ToggleButton,
-  Tooltip,
-} from "@mui/material";
+import { Avatar, ToggleButton, Tooltip } from "@mui/material";
 import React, { memo, useMemo, useState } from "react";
 import { Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -17,6 +13,7 @@ import {
   startColorAtom,
   endColorAtom,
   snapshotAtom,
+  selectedAdjacentsAtom,
 } from "./atom";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoInfinite, IoExitOutline } from "react-icons/io5";
@@ -24,7 +21,11 @@ import { FiMinus, FiPlus, FiTrash2, FiHash } from "react-icons/fi";
 import { mapValues } from "lodash";
 import { SimpleInput } from "./SimpleInput";
 import { ToolbarButton } from "./ToolbarButton";
-import { MotionHandle, MotionButtonGroup, MotionToggleButtonGroup } from "./MotionElements";
+import {
+  MotionHandle,
+  MotionButtonGroup,
+  MotionToggleButtonGroup,
+} from "./MotionElements";
 
 const connectionNodeIdSelector = (state) => state.connectionNodeId;
 
@@ -52,13 +53,16 @@ export default memo(({ isConnectable }) => {
   const snapshot = useSetAtom(snapshotAtom);
 
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const selectedAdjacents = useAtomValue(selectedAdjacentsAtom);
+
+  // console.log("includes", selectedAdjacents.includes(nodeId));
 
   return (
     place && (
       <>
         <NodeToolbar
           className="nodrag nopan"
-          isVisible={selectedNode === nodeId || pinned}
+          isVisible={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId)}
           position="top"
         >
           <MotionButtonGroup
@@ -69,120 +73,157 @@ export default memo(({ isConnectable }) => {
               hidden: { opacity: 0, y: 10 },
             }}
             initial="hidden"
-            animate={selectedNode === nodeId || pinned ? "visible" : "hidden"}
+            animate={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId) ? "visible" : "hidden"}
           >
-            <Tooltip
-              className="no-outline"
-              title={pinned ? "Unpin" : "Pin This Menu"}
-              color="primary"
-              placement="top"
-            >
-              <ToolbarButton
-                aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
-                color="primary"
-                onClick={() => {
-                  setPinned(!pinned);
-                  setTooltipOpen(false);
-                }}
-              >
-                {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-              </ToolbarButton>
-            </Tooltip>
-            <SimpleInput
-              value={place.name}
-              onChange={(e) => {
-                snapshot();
-                setPlace({ ...place, name: e.target.value });
-              }}
-            />
-            {place.tokens !== "infinite" && place.tokens !== "sink" && (
+            {selectedAdjacents.includes(nodeId) || (pinned && selectedNode !== nodeId) ? (
+              <>
               <Tooltip
-                title="Decrease Tokens"
-                placement="top"
-                className="no-outline"
-              >
-                <ToolbarButton
-                  aria-label="Decrease Tokens"
-                  onClick={() => {
-                    if (simulating && marking[place.id] > 0) {
-                      setMarking((m) => ({
-                        ...m,
-                        [place.id]: m[place.id] - 1,
-                      }));
-                    } else if (initialMarking[place.id] > 0){
-                      snapshot();
-                      setInitialMarking((im) => ({
-                        ...im,
-                        [place.id]: im[place.id] - 1,
-                      }));
-                      setMarking((m) => ({
-                        ...m,
-                        [place.id]: m[place.id] - 1,
-                      }));
-                    }
-                  }}
+                  className="no-outline"
+                  title={pinned ? "Unpin" : "Pin This Menu"}
+                  color="primary"
+                  placement="top"
                 >
-                  <FiMinus style={{opacity: simulating && marking[place.id] > 0 || !simulating && initialMarking[place.id] > 0 ? 1 : 0.5}}/>
-                </ToolbarButton>
-              </Tooltip>
-            )}
-            {place.tokens !== "infinite" && place.tokens !== "sink" && (
-              <Tooltip
-                title="Increase Tokens"
-                placement="top"
-                className="no-outline"
-              >
-                <ToolbarButton
-                  aria-label="Increase Tokens"
-                  onClick={() => {
-                    if (simulating) {
-                      setMarking((m) => ({
-                        ...m,
-                        [place.id]: m[place.id] + 1,
-                      }));
-                    } else {
-                      snapshot();
-                      setInitialMarking((im) => ({
-                        ...im,
-                        [place.id]: im[place.id] + 1,
-                      }));
-                      setMarking((m) => ({
-                        ...m,
-                        [place.id]: m[place.id] + 1,
-                      }));
-                    }
-                  }}
+                  <ToolbarButton
+                    aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                    color="primary"
+                    onClick={() => {
+                      setPinned(!pinned);
+                      setTooltipOpen(false);
+                    }}
+                  >
+                    {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                  </ToolbarButton>
+                </Tooltip>
+              <SimpleInput
+                readOnly
+                value={place.name}
+              />
+              </>
+            ) : (
+              <>
+                <Tooltip
+                  className="no-outline"
+                  title={pinned ? "Unpin" : "Pin This Menu"}
+                  color="primary"
+                  placement="top"
                 >
-                  <FiPlus />
-                </ToolbarButton>
-              </Tooltip>
+                  <ToolbarButton
+                    aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                    color="primary"
+                    onClick={() => {
+                      setPinned(!pinned);
+                      setTooltipOpen(false);
+                    }}
+                  >
+                    {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                  </ToolbarButton>
+                </Tooltip>
+                <SimpleInput
+                  value={place.name}
+                  onChange={(e) => {
+                    snapshot();
+                    setPlace({ ...place, name: e.target.value });
+                  }}
+                />
+                {place.tokens !== "infinite" && place.tokens !== "sink" && (
+                  <Tooltip
+                    title="Decrease Tokens"
+                    placement="top"
+                    className="no-outline"
+                  >
+                    <ToolbarButton
+                      aria-label="Decrease Tokens"
+                      onClick={() => {
+                        if (simulating && marking[place.id] > 0) {
+                          setMarking((m) => ({
+                            ...m,
+                            [place.id]: m[place.id] - 1,
+                          }));
+                        } else if (initialMarking[place.id] > 0) {
+                          snapshot();
+                          setInitialMarking((im) => ({
+                            ...im,
+                            [place.id]: im[place.id] - 1,
+                          }));
+                          setMarking((m) => ({
+                            ...m,
+                            [place.id]: m[place.id] - 1,
+                          }));
+                        }
+                      }}
+                    >
+                      <FiMinus
+                        style={{
+                          opacity:
+                            (simulating && marking[place.id] > 0) ||
+                            (!simulating && initialMarking[place.id] > 0)
+                              ? 1
+                              : 0.5,
+                        }}
+                      />
+                    </ToolbarButton>
+                  </Tooltip>
+                )}
+                {place.tokens !== "infinite" && place.tokens !== "sink" && (
+                  <Tooltip
+                    title="Increase Tokens"
+                    placement="top"
+                    className="no-outline"
+                  >
+                    <ToolbarButton
+                      aria-label="Increase Tokens"
+                      onClick={() => {
+                        if (simulating) {
+                          setMarking((m) => ({
+                            ...m,
+                            [place.id]: m[place.id] + 1,
+                          }));
+                        } else {
+                          snapshot();
+                          setInitialMarking((im) => ({
+                            ...im,
+                            [place.id]: im[place.id] + 1,
+                          }));
+                          setMarking((m) => ({
+                            ...m,
+                            [place.id]: m[place.id] + 1,
+                          }));
+                        }
+                      }}
+                    >
+                      <FiPlus />
+                    </ToolbarButton>
+                  </Tooltip>
+                )}
+                <Tooltip title="Delete" placement="top" className="no-outline">
+                  <ToolbarButton
+                    aria-label="Delete Place"
+                    onClick={() => {
+                      snapshot();
+                      const { [place.id]: _, ...rest } = places;
+                      const newTransitions = mapValues(
+                        transitions,
+                        (transition) => {
+                          const { [place.id]: _i, ...input } = transition.input;
+                          const { [place.id]: _o, ...output } =
+                            transition.output;
+                          return { ...transition, input, output };
+                        }
+                      );
+                      setPlaces(rest);
+                      setTransitions(newTransitions);
+                    }}
+                  >
+                    <FiTrash2 />
+                  </ToolbarButton>
+                </Tooltip>
+              </>
             )}
-            <Tooltip title="Delete" placement="top" className="no-outline">
-              <ToolbarButton
-                aria-label="Delete Place"
-                onClick={() => {
-                  snapshot();
-                  const { [place.id]: _, ...rest } = places;
-                  const newTransitions = mapValues(
-                    transitions,
-                    (transition) => {
-                      const { [place.id]: _i, ...input } = transition.input;
-                      const { [place.id]: _o, ...output } = transition.output;
-                      return { ...transition, input, output };
-                    }
-                  );
-                  setPlaces(rest);
-                  setTransitions(newTransitions);
-                }}
-              >
-                <FiTrash2 />
-              </ToolbarButton>
-            </Tooltip>
           </MotionButtonGroup>
         </NodeToolbar>
         <NodeToolbar
           className="nodrag nopan"
-          isVisible={selectedNode === nodeId || pinned}
+          isVisible={selectedNode === nodeId}
           position="bottom"
         >
           <MotionToggleButtonGroup
@@ -251,7 +292,7 @@ export default memo(({ isConnectable }) => {
         <Tooltip
           open={tooltipOpen}
           onOpen={() => {
-            if (!pinned && selectedNode !== nodeId) {
+            if (!pinned && selectedNode !== nodeId && (!selectedAdjacents.includes(nodeId))) {
               setTooltipOpen(true);
             }
           }}

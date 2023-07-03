@@ -1,8 +1,5 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
-import {
-  useStore,
-  EdgeLabelRenderer,
-} from "reactflow";
+import { useStore, EdgeLabelRenderer } from "reactflow";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   transitionArrangementsAtom,
@@ -10,13 +7,12 @@ import {
   markingAtom,
   startColorAtom,
   endColorAtom,
-  snapshotAtom
+  snapshotAtom,
+  highlightEdgesAtom,
+  selectedNodeAtom,
 } from "./atom";
 import { focusAtom } from "jotai-optics";
-import {
-  getCustomEdge,
-  getNodeCenter
-} from "./utils.js";
+import { getCustomEdge, getNodeCenter } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
 
@@ -51,6 +47,8 @@ function FloatingEdge({ id, source, target, markerEnd }) {
   );
 
   const [transition, setTransition] = useAtom(transitionAtom);
+  const highlightEdges = useAtomValue(highlightEdgesAtom);
+  const selectedNode = useAtomValue(selectedNodeAtom);
   const transitionArrangement = useAtomValue(transitionArrangementAtom);
   const marking = useAtomValue(markingAtom);
   const snapshot = useSetAtom(snapshotAtom);
@@ -68,20 +66,39 @@ function FloatingEdge({ id, source, target, markerEnd }) {
   );
 
   const progress = useSpring(0);
-  const actionStroke = useTransform(progress, [0, 0.75, 1], [startColor, startColor, endColor]);
-  const actionPathLength = useTransform(progress, [0, 0.5, 1], [
-    transitionField === "input" ? 0 : 0,
-    transitionField === "input" ? 1 : 0,
-    transitionField === "input" ? 1 : 1,
-  ]);
+  const actionStroke = useTransform(
+    progress,
+    [0, 0.75, 1],
+    [startColor, startColor, endColor]
+  );
+  
+  const actionPathLength = useTransform(
+    progress,
+    [0, 0.5, 1],
+    [
+      transitionField === "input" ? 0 : 0,
+      transitionField === "input" ? 1 : 0,
+      transitionField === "input" ? 1 : 1,
+    ]
+  );
+
+  const highlightedEdge = [sourceNode?.id, targetNode?.id].includes(
+    selectedNode
+  );
+
+  const highlight = useSpring(highlightedEdge ? 1 : 0);
+  const transitioning = marking[transition?.id] > 0;
+
+  const fillColor = useTransform(highlight, [0, 1], ['#999', highlightEdges ? endColor : '#999']);
 
   useEffect(() => {
     if (!marking[transition?.id]) {
-      progress.jump(0)
+      progress.jump(0);
     } else {
-      progress.set(marking[transition?.id])
+      progress.set(marking[transition?.id]);
     }
-  }, [marking[transition?.id]])
+    highlight.set(highlightedEdge ? 1 : 0)
+  }, [marking[transition?.id], highlightedEdge]);
 
   return (
     transition?.[transitionField]?.[placeNode.id] && (
@@ -92,19 +109,49 @@ function FloatingEdge({ id, source, target, markerEnd }) {
           setInteractive(!interactive);
         }}
       >
-        <path
+        <defs>
+          <marker
+            id={`${sourceNode.id}-${transitionField}-${targetNode.id}-arrowhead`}
+            markerWidth="5"
+            markerHeight="7"
+            refX="5"
+            refY="3.5"
+            orient="auto"
+          >
+            <motion.polygon
+              points="0 0, 5 3.5, 0 7"
+              fill={(highlightEdges && highlightedEdge) || !transitioning ? fillColor : actionStroke}
+              opacity={!highlightedEdge && highlightEdges && selectedNode ? 0.5 : 1}
+            />
+          </marker>
+        </defs>
+        <motion.path
           id={id}
-          className="react-flow__edge-path"
+          // className="react-flow__edge-path"
           d={edgePath}
-          strokeWidth={interactive ? 10 : 5}
-          markerEnd={markerEnd}
-          strokeOpacity={marking[transition.id] ? 0.5 : 1}
-          style={{ stroke: marking[transition.id] ? startColor : "#999" }}
+          strokeWidth={interactive ? 3 : 2}
+          markerEnd={`url(#${sourceNode.id}-${transitionField}-${targetNode.id}-arrowhead)`}
+          markerEndColor={transitioning ? startColor : "#999"}
+          strokeOpacity={transitioning ? 0.5 : 1}
+          initial={{ stroke: "#999" }}
+          variants={{
+            selected: { stroke: endColor, strokeWidth: 3, zIndex: 40 },
+            transitioning: { stroke: startColor, strokeWidth: 2.5, zIndex: 30 },
+            inactive: { stroke: "#999", strokeWidth: 2, zIndex: 1 },
+          }}
+          opacity={!highlightedEdge && highlightEdges && selectedNode ? 0.5 : 1}
+          style={{ fill: "none" }}
+          animate={
+            ( highlightEdges && highlightedEdge ) || interactive
+              ? "selected"
+              : transitioning
+              ? "transitioning"
+              : "inactive"
+          }
         />
 
         {marking[transition.id] && (
           <motion.path
-            strokeDashoffset={0.5}
             pathLength={actionPathLength}
             stroke={actionStroke}
             strokeLinecap="round"
@@ -137,7 +184,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
                   const newTransition = {
                     ...transition,
                     [transitionField]: rest,
-                  }
+                  };
                   setTransition(newTransition);
                   // update({transitions: newTransitions})
                 } else {
@@ -148,7 +195,7 @@ function FloatingEdge({ id, source, target, markerEnd }) {
                       [placeNode.id]:
                         (transition[transitionField][placeNode.id] || 0) - 1,
                     },
-                  }
+                  };
                   setTransition(newTransition);
                 }
 
