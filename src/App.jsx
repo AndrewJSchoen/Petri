@@ -38,36 +38,17 @@ import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard, useForceLayout } from "./utils";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { cloneDeep, shuffle, mapValues, clamp, pick, set } from "lodash";
+import { cloneDeep, shuffle, mapValues, clamp, pick } from "lodash";
 import { v4 as uuid4 } from "uuid";
 import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardActions,
-  IconButton,
-  Modal,
-  Box,
-  Button,
-  TextField,
   Stack,
-  ClickAwayListener,
-  Tooltip,
-  alpha,
+  Typography,
   FormControlLabel,
 } from "@mui/material";
 import {
   FiCopy,
-  FiFileText,
-  FiPause,
-  FiPlay,
-  FiPlus,
-  FiRotateCcw,
-  FiRotateCw,
   FiUpload,
   FiDownload,
-  FiX,
-  FiRewind,
 } from "react-icons/fi";
 import { FaPalette } from "react-icons/fa";
 import { saveAs } from "file-saver";
@@ -75,9 +56,11 @@ import YAML from "yaml";
 import { forceSimulation } from "d3-force";
 import { forceManyBody, forceLink } from "d3-force";
 import { MuiColorInput } from "mui-color-input";
-import { AnimatePresence, motion } from "framer-motion";
-import { MotionStack } from "./MotionElements";
 import { Switch } from "./Switch";
+import { Drawer } from "./Drawer";
+import { AppBar } from "./AppBar";
+import { TooltippedToolbarButton } from "./ToolbarButton";
+import { Accordion, AccordionSummary, AccordionDetails } from "./Accordion";
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
@@ -88,6 +71,7 @@ function Petri() {
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef();
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [simulating, setSimulating] = useAtom(simulatingAtom);
   const [nodeList] = useAtom(nodeListAtom);
@@ -104,19 +88,16 @@ function Petri() {
   const [palette, setPalette] = useState(false);
   const [saveModal, setSaveModal] = useState(false);
   const [highlightEdges, setHighlightEdges] = useAtom(highlightEdgesAtom);
-  const [showConnectingLabels, setShowConnectingLabels] = useAtom(showConnectingLabelsAtom);
-  const [useForceLayoutSetting, setUseForceLayoutSetting] = useAtom(useForceLayoutAtom);
-
-  const canUndo = useAtomValue(canUndoAtom);
-  const canRedo = useAtomValue(canRedoAtom);
-
-  const undo = useSetAtom(undoAtom);
-  const redo = useSetAtom(redoAtom);
+  const [showConnectingLabels, setShowConnectingLabels] = useAtom(
+    showConnectingLabelsAtom
+  );
+  const [useForceLayoutSetting, setUseForceLayoutSetting] =
+    useAtom(useForceLayoutAtom);
   const snapshot = useSetAtom(snapshotAtom);
 
   const [dragging, setDragging] = useState(false);
 
-  useForceLayout(dragging)
+  useForceLayout(dragging);
 
   const theme = createTheme({
     palette: {
@@ -410,11 +391,123 @@ function Petri() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div
-        ref={reactFlowWrapper}
-        className="App"
-        style={{ height: "100%", width: "100%" }}
+      <AppBar
+        open={sidebarOpen}
+        onOpen={setSidebarOpen}
+        addMode={addMode}
+        onSetAddMode={setAddMode}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={upload}
+        style={{ display: "none" }}
+      />
+      <Drawer
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
+        footerActions={
+          <>
+            <TooltippedToolbarButton
+              title="Upload File"
+              flex
+              onClick={handleUploadClick}
+            >
+              <FiUpload />
+            </TooltippedToolbarButton>
+            <TooltippedToolbarButton title="Download File" onClick={download}>
+              <FiDownload />
+            </TooltippedToolbarButton>
+            <TooltippedToolbarButton
+              title="Copy to Clipboard"
+              onClick={() => {
+                console.log("Copying to Clipboard");
+                copyTextToClipboard(
+                  JSON.stringify({
+                    marking: initialMarking,
+                    places,
+                    transitions,
+                  })
+                );
+              }}
+            >
+              <FiCopy />
+            </TooltippedToolbarButton>
+          </>
+        }
       >
+        <Accordion disableGutters square>
+          <AccordionSummary
+            // expandIcon={<FiMoreHorizontal />}
+            aria-controls="color settings"
+            id="color-settings-panel-header"
+          >
+            <Typography>Colors</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack direction="column" spacing={1} style={{textAlign:'start'}}>
+              <MuiColorInput
+                key="start"
+                aria-label="Start Color Selector"
+                label="Start"
+                size="small"
+                value={startColor}
+                onChange={(v) => setStartColor(v)}
+                isAlphaHidden
+              />
+              <MuiColorInput
+                key="end"
+                aria-label="End Color Selector"
+                label="End"
+                size="small"
+                value={endColor}
+                onChange={(v) => setEndColor(v)}
+                isAlphaHidden
+              />
+              <FormControlLabel
+                sx={{flexDirection:'row-reverse', justifyContent:'space-between',backgroundColor:'#22222240', padding: 0.75, borderRadius: 1}}
+                control={
+                  <Switch
+                    sx={{ marginLeft: 2 }}
+                    checked={highlightEdges}
+                    onChange={(e) => setHighlightEdges(e.target.checked)}
+                  />
+                }
+                checked={highlightEdges}
+                label="Highlight Connecting Edges"
+                labelPlacement="start"
+              />
+              <FormControlLabel
+                sx={{flexDirection:'row-reverse', justifyContent:'space-between',backgroundColor:'#22222240', padding: 0.75, borderRadius: 1}}
+                control={
+                  <Switch
+                    sx={{ marginLeft: 2 }}
+                    checked={showConnectingLabels}
+                    onChange={(e) => setShowConnectingLabels(e.target.checked)}
+                  />
+                }
+                checked={highlightEdges}
+                label="Label Connecting Nodes"
+                labelPlacement="start"
+              />
+              <FormControlLabel
+                sx={{flexDirection:'row-reverse', justifyContent:'space-between',backgroundColor:'#22222240', padding: 0.75, borderRadius: 1}}
+                control={
+                  <Switch
+                    sx={{ marginLeft: 2 }}
+                    checked={useForceLayoutSetting}
+                    onChange={(e) => setUseForceLayoutSetting(e.target.checked)}
+                  />
+                }
+                checked={highlightEdges}
+                label="Use Force Layout"
+                labelPlacement="start"
+              />
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+      </Drawer>
+      <div ref={reactFlowWrapper} style={{ width: "100%", height: "100%" }}>
         <ReactFlow
           proOptions={{ hideAttribution: true }}
           onPaneClick={handlePaneClick}
@@ -423,270 +516,25 @@ function Petri() {
           edges={edgeList}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          fitView={{ padding: 10 }}
+          fitView={{ padding: 100 }}
           onNodesChange={onNodesChange}
-          onNodeDragStart={()=>{
+          onNodeDragStart={() => {
             setDragging(true);
             snapshot();
           }}
-          onNodeDragStop={()=>{
+          onNodeDragStop={() => {
             setDragging(false);
           }}
           connectionLineComponent={FloatingEdgePreview}
           onConnect={onConnect}
-          //onEdgesChange={onEdgesChange}
           connectionMode={ConnectionMode.Loose}
           style={{ backgroundColor: "#333" }}
           snapGrid={[10, 20]}
           snapToGrid
         >
           <Background variant="dots" gap={24} size={1} />
-          <Panel position="top-left">
-            <TextField
-              aria-label="Petri Net Name"
-              label="Petri Net Name"
-              size="small"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              variant="filled"
-            />
-          </Panel>
-          <Panel position="bottom-left">
-            <IconButton disabled={!canUndo} aria-label="Undo" onClick={undo}>
-              <FiRotateCcw />
-            </IconButton>
-            <IconButton disabled={!canRedo} aria-label="Redo" onClick={redo}>
-              <FiRotateCw />
-            </IconButton>
-          </Panel>
-          <Panel position="bottom-right">
-            <ClickAwayListener onClickAway={() => setPalette(false)}>
-              <Stack direction="column" spacing={1} alignItems="end">
-                <AnimatePresence>
-                  {palette && (
-                    <MotionStack
-                      spacing={1}
-                      direction="column"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      style={{
-                        padding: 15,
-                        borderRadius: 10,
-                        backgroundColor: alpha("#101010", 0.5),
-                      }}
-                    >
-                      <MuiColorInput
-                        key="start"
-                        aria-label="Start Color Selector"
-                        label="Start"
-                        size="small"
-                        value={startColor}
-                        onChange={(v) => setStartColor(v)}
-                        isAlphaHidden
-                      />
-                      <MuiColorInput
-                        key="end"
-                        aria-label="End Color Selector"
-                        label="End"
-                        size="small"
-                        value={endColor}
-                        onChange={(v) => setEndColor(v)}
-                        isAlphaHidden
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            sx={{ marginLeft: 2 }}
-                            checked={highlightEdges}
-                            onChange={(e) =>
-                              setHighlightEdges(e.target.checked)
-                            }
-                          />
-                        }
-                        checked={highlightEdges}
-                        label="Highlight Connecting Edges"
-                        labelPlacement="start"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            sx={{ marginLeft: 2 }}
-                            checked={showConnectingLabels}
-                            onChange={(e) =>
-                              setShowConnectingLabels(e.target.checked)
-                            }
-                          />
-                        }
-                        checked={highlightEdges}
-                        label="Label Connecting Nodes"
-                        labelPlacement="start"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            sx={{ marginLeft: 2 }}
-                            checked={useForceLayoutSetting}
-                            onChange={(e) =>
-                              setUseForceLayoutSetting(e.target.checked)
-                            }
-                          />
-                        }
-                        checked={highlightEdges}
-                        label="Use Force Layout"
-                        labelPlacement="start"
-                      />
-                    </MotionStack>
-                  )}
-                </AnimatePresence>
-                <Tooltip title="Set Colors" className="no-outline">
-                  <IconButton
-                    aria-label="Toggle Color Selector"
-                    color={palette ? "primary" : "default"}
-                    onClick={() => setPalette(!palette)}
-                  >
-                    <FaPalette />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </ClickAwayListener>
-          </Panel>
-          <Panel position="top-right">
-            <Tooltip title="Restart" className="no-outline">
-              <span>
-                <IconButton
-                  aria-label="Restart Simulation"
-                  variant="outlined"
-                  disabled={simulating}
-                  onClick={() => {
-                    setMarking(initialMarking);
-                  }}
-                >
-                  <FiRewind className="no-outline" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={simulating ? "Pause" : "Play"}
-              className="no-outline"
-            >
-              <IconButton
-                aria-label="Pause/Play Simulation Toggle"
-                variant="outlined"
-                onClick={() => {
-                  if (simulating) {
-                    setSimulating(false);
-                  } else {
-                    setSimulating(true);
-                  }
-                }}
-              >
-                {simulating ? <FiPause /> : <FiPlay />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip
-              title={addMode ? "Cancel" : "Add a Place"}
-              className="no-outline"
-            >
-              <IconButton
-                variant="outlined"
-                color={addMode ? "primary" : "default"}
-                onClick={() => setAddMode(!addMode)}
-              >
-                <FiPlus />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Copy to Clipboard" className="no-outline">
-              <IconButton
-                aria-label="Copy Petri Net to Clipboard"
-                variant="outlined"
-                onClick={() => {
-                  console.log("Copying to Clipboard");
-                  copyTextToClipboard(
-                    JSON.stringify({
-                      marking: initialMarking,
-                      places,
-                      transitions,
-                    })
-                  );
-                }}
-              >
-                <FiCopy />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Upload / Download" className="no-outline">
-              <IconButton
-                aria-label="Open modal to upload or download a Petri Net"
-                variant="outlined"
-                onClick={() => {
-                  setSaveModal(!saveModal);
-                }}
-              >
-                <FiFileText />
-              </IconButton>
-            </Tooltip>
-          </Panel>
+          
         </ReactFlow>
-        <Modal open={saveModal} onClose={() => setSaveModal(false)}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 500,
-              pt: 2,
-              px: 4,
-              pb: 3,
-            }}
-          >
-            <Card>
-              <CardHeader
-                title="Upload / Download"
-                action={
-                  <Tooltip title="Close Modal" className="no-outline">
-                    <IconButton
-                      aria-label="Close Modal"
-                      onClick={() => setSaveModal(false)}
-                    >
-                      <FiX />
-                    </IconButton>
-                  </Tooltip>
-                }
-              />
-              <CardContent>Save or Upload your Petri Net</CardContent>
-              <CardActions>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={upload}
-                  style={{ display: "none" }}
-                />
-                <Button
-                  className="no-outline"
-                  variant="outlined"
-                  aria-label="Upload File"
-                  icon={<FiUpload />}
-                  style={{ flex: 1 }}
-                  onClick={handleUploadClick}
-                >
-                  Upload
-                </Button>
-                <Button
-                  className="no-outline"
-                  aria-label="Download File"
-                  variant="outlined"
-                  icon={<FiDownload />}
-                  style={{ flex: 1 }}
-                  label="Download"
-                  onClick={download}
-                >
-                  Download
-                </Button>
-              </CardActions>
-            </Card>
-          </Box>
-        </Modal>
       </div>
     </ThemeProvider>
   );

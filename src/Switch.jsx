@@ -1,4 +1,3 @@
-import react from 'react';
 import { Switch as MuiSwitch } from '@mui/material';
 import { styled } from "@mui/material/styles";
 
@@ -46,7 +45,7 @@ export const Switch = styled((props) => (
     },
     '& .MuiSwitch-track': {
       borderRadius: 26 / 2,
-      backgroundColor: theme.palette.mode === 'light' ? '#E9E9EA' : '#39393D',
+      backgroundColor: theme.palette.mode === 'light' ? '#E9E9EA' : '#29292D',
       opacity: 1,
       transition: theme.transitions.create(['background-color'], {
         duration: 500,
