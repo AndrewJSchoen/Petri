@@ -10,28 +10,43 @@ export const nameAtom = atom("Untitled");
 
 const data = {
   marking: {
-    a: 0,
-    b: 1,
-    c: 0,
-    d: 0,
-    "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1,
-    "41a4c380-5507-4bc5-a318-87be79c4f692": 1,
-    "750169f8-4eee-4873-a6e7-f58a047383c2": 0,
-    "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
-    "8ac6638b-b8d1-496c-a98f-aa877028ef0b": 1,
-    "74eb3e2c-72cc-473e-a28f-dfd26116b6d9": 0,
-    "9b484783-cb44-4b0f-9062-9f83bfa24807": 0,
+    "b175f4d6-9f81-4aed-8e92-138df1571478": [],
+    "0ae2783d-56dd-41f5-9668-1da03522a3db": [
+      { id: "725d9646-815c-4171-8261-d1dcf36a17a4" },
+    ],
+    c: [],
+    d: [],
+    "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": [
+      { id: "fa85dbfa-812e-43a8-a1df-014734df9346" },
+    ],
+    "41a4c380-5507-4bc5-a318-87be79c4f692": [
+      { id: "3f55e0cc-c3d6-4990-9b8c-2e828c806c8f" },
+    ],
+    "750169f8-4eee-4873-a6e7-f58a047383c2": [],
+    "797c0c8a-f6f4-41ac-91e9-7355747396e2": [
+      { id: "1937d6b5-1019-4e1b-8dc3-59aa2420bbc0" },
+    ],
+    "8ac6638b-b8d1-496c-a98f-aa877028ef0b": [
+      { id: "b0d2d4d2-b471-424f-ad04-1020b6be8e17" },
+    ],
+    "74eb3e2c-72cc-473e-a28f-dfd26116b6d9": [],
+    "9b484783-cb44-4b0f-9062-9f83bfa24807": [],
   },
   places: {
-    a: { id: "a", name: "A", position: { x: -270, y: 40 }, tokens: "finite" },
-    b: {
-      id: "b",
+    "b175f4d6-9f81-4aed-8e92-138df1571478": {
+      id: "b175f4d6-9f81-4aed-8e92-138df1571478",
+      name: "A",
+      position: { x: -270, y: 40 },
+      tokens: "finite",
+    },
+    "0ae2783d-56dd-41f5-9668-1da03522a3db": {
+      id: "0ae2783d-56dd-41f5-9668-1da03522a3db",
       name: "Agent 2 Idle",
       position: { x: 200, y: 520 },
       tokens: "finite",
     },
-    c: { id: "c", name: "C", position: { x: 320, y: 40 }, tokens: "finite" },
-    d: { id: "d", name: "B", position: { x: 30, y: 40 }, tokens: "finite" },
+    "baef23d6-cd13-4efa-ad91-219ed440674c": { id: "baef23d6-cd13-4efa-ad91-219ed440674c", name: "C", position: { x: 320, y: 40 }, tokens: "finite" },
+    "492b7c7d-b577-41f2-b0c3-6f238847925c": { id: "492b7c7d-b577-41f2-b0c3-6f238847925c", name: "B", position: { x: 30, y: 40 }, tokens: "finite" },
     "797c0c8a-f6f4-41ac-91e9-7355747396e2": {
       id: "797c0c8a-f6f4-41ac-91e9-7355747396e2",
       name: "Agent 1 Idle",
@@ -80,12 +95,12 @@ const data = {
       id: "ffbabf72-c768-4b32-aa70-ea1666268a81",
       name: "Process 1",
       input: {
-        a: 1,
+        "b175f4d6-9f81-4aed-8e92-138df1571478": 1,
         "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
         "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1,
       },
       output: {
-        d: 1,
+        "492b7c7d-b577-41f2-b0c3-6f238847925c": 1,
         "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
         "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1,
       },
@@ -96,12 +111,12 @@ const data = {
       id: "fec437f0-ffdc-4272-9db9-85071f6146d5",
       name: "Process 2",
       input: {
-        d: 1,
+        "492b7c7d-b577-41f2-b0c3-6f238847925c": 1,
         "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
         "41a4c380-5507-4bc5-a318-87be79c4f692": 1,
       },
       output: {
-        c: 1,
+        "baef23d6-cd13-4efa-ad91-219ed440674c": 1,
         "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
         "41a4c380-5507-4bc5-a318-87be79c4f692": 1,
       },
@@ -111,16 +126,32 @@ const data = {
     "d0a8509f-6777-4b35-bfd9-947ff9c51b7c": {
       id: "d0a8509f-6777-4b35-bfd9-947ff9c51b7c",
       name: "Process 1",
-      input: { b: 1, a: 1, "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1 },
-      output: { d: 1, b: 1, "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1 },
+      input: {
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
+        "b175f4d6-9f81-4aed-8e92-138df1571478": 1,
+        "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1,
+      },
+      output: {
+        "492b7c7d-b577-41f2-b0c3-6f238847925c": 1,
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
+        "710ee10a-8a6d-4d91-8a2f-ebbc6dff7ad0": 1,
+      },
       position: { x: -90, y: 320 },
       time: 2,
     },
     "795e2bca-07fe-4b77-9bcd-87a5ed202663": {
       id: "795e2bca-07fe-4b77-9bcd-87a5ed202663",
       name: "Process 2",
-      input: { b: 1, d: 1, "41a4c380-5507-4bc5-a318-87be79c4f692": 1 },
-      output: { c: 1, b: 1, "41a4c380-5507-4bc5-a318-87be79c4f692": 1 },
+      input: {
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
+        "492b7c7d-b577-41f2-b0c3-6f238847925c": 1,
+        "41a4c380-5507-4bc5-a318-87be79c4f692": 1,
+      },
+      output: {
+        "baef23d6-cd13-4efa-ad91-219ed440674c": 1,
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
+        "41a4c380-5507-4bc5-a318-87be79c4f692": 1,
+      },
       position: { x: 200, y: 320 },
       time: 5,
     },
@@ -128,7 +159,7 @@ const data = {
       id: "e86d0bf4-1d14-4d08-a38b-d34ef88fbbca",
       name: "Spawn 1",
       input: { "750169f8-4eee-4873-a6e7-f58a047383c2": 1 },
-      output: { a: 1 },
+      output: { "b175f4d6-9f81-4aed-8e92-138df1571478": 1 },
       position: { x: -410, y: 40 },
       time: 5,
     },
@@ -136,7 +167,7 @@ const data = {
       id: "0a464a55-e740-4b7d-b87f-7b876d816fb1",
       name: "Process 3",
       input: {
-        c: 1,
+        "baef23d6-cd13-4efa-ad91-219ed440674c": 1,
         "797c0c8a-f6f4-41ac-91e9-7355747396e2": 1,
         "8ac6638b-b8d1-496c-a98f-aa877028ef0b": 1,
       },
@@ -151,10 +182,14 @@ const data = {
     "6c6b27bd-883a-4720-91a8-6ebf8aacdf9a": {
       id: "6c6b27bd-883a-4720-91a8-6ebf8aacdf9a",
       name: "Process 3",
-      input: { b: 1, c: 1, "8ac6638b-b8d1-496c-a98f-aa877028ef0b": 1 },
+      input: {
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
+        "baef23d6-cd13-4efa-ad91-219ed440674c": 1,
+        "8ac6638b-b8d1-496c-a98f-aa877028ef0b": 1,
+      },
       output: {
         "74eb3e2c-72cc-473e-a28f-dfd26116b6d9": 1,
-        b: 1,
+        "0ae2783d-56dd-41f5-9668-1da03522a3db": 1,
         "8ac6638b-b8d1-496c-a98f-aa877028ef0b": 1,
       },
       position: { x: 470, y: 320 },

@@ -50,7 +50,6 @@ import {
   FiUpload,
   FiDownload,
 } from "react-icons/fi";
-import { FaPalette } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import YAML from "yaml";
 import { forceSimulation } from "d3-force";
@@ -85,8 +84,6 @@ function Petri() {
   const [startColor, setStartColor] = useAtom(startColorAtom);
   const [endColor, setEndColor] = useAtom(endColorAtom);
 
-  const [palette, setPalette] = useState(false);
-  const [saveModal, setSaveModal] = useState(false);
   const [highlightEdges, setHighlightEdges] = useAtom(highlightEdgesAtom);
   const [showConnectingLabels, setShowConnectingLabels] = useAtom(
     showConnectingLabelsAtom
@@ -204,7 +201,6 @@ function Petri() {
 
           setMarking(data.marking || data.initial_marking || {});
           setInitialMarking(data.initial_marking || data.marking || {});
-          setSaveModal(false);
         }
       };
       reader.readAsText(fileUploaded);
@@ -250,7 +246,7 @@ function Petri() {
               if (
                 !["infinite", "sink"].includes(places[outputNode.id].tokens)
               ) {
-                newMarking[outputNode.id] += 1;
+                newMarking[outputNode.id] ? newMarking[outputNode.id].push({id:uuid4()}) : newMarking[outputNode.id] = [{id:uuid4()}];
               }
               transitionedPlaces.push(outputNode.id);
             }
@@ -264,20 +260,21 @@ function Petri() {
           inputNodes.every(
             (inputNode) =>
               inputNode.tokens === "infinite" ||
-              newMarking[inputNode.id] >= transition.input[inputNode.id]
+              newMarking[inputNode.id]?.length >= transition.input[inputNode.id]
           )
         ) {
-          // console.log("starting transition");
+          console.log("starting transition");
           inputNodes.forEach((inputNode) => {
             for (let i = 0; i < transition.input[inputNode.id]; i++) {
               if (places[inputNode.id].tokens !== "infinite") {
-                newMarking[inputNode.id] -= 1;
+                let newTokens = [...newMarking[inputNode.id]];
+                newTokens.pop();
+                console.log(`old tokens: ${newMarking[inputNode.id]?.length}; new tokens: ${newTokens.length}`);
+                newMarking[inputNode.id] = newTokens;
               }
             }
           });
-          // newTransitions[transition.id].active = true;
           newMarking[transition.id] = 0.001;
-
           update = true;
         }
       });
@@ -439,10 +436,10 @@ function Petri() {
         <Accordion disableGutters square>
           <AccordionSummary
             // expandIcon={<FiMoreHorizontal />}
-            aria-controls="color settings"
+            aria-controls="style settings"
             id="color-settings-panel-header"
           >
-            <Typography>Colors</Typography>
+            <Typography>Styles</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack direction="column" spacing={1} style={{textAlign:'start'}}>
