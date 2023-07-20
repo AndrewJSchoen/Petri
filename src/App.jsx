@@ -397,7 +397,7 @@ function Petri() {
       <CssBaseline />
       <AppBar
         open={sidebarOpen}
-        onOpen={setSidebarOpen}
+        onOpen={()=>setSidebarOpen(!sidebarOpen)}
         addMode={addMode}
         onSetAddMode={setAddMode}
       />
