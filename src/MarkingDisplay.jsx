@@ -4,13 +4,9 @@ import { motion } from "framer-motion";
 import { SvgIcon } from "@mui/material";
 import { FiMoreHorizontal } from "react-icons/fi";
 
-function randomColor() {
-    return `hsl(${Math.random() * 360}, 100%, 50%)`;
-}
-
 export const MarkingDisplay = ({ marking }) => {
   const [animatedCircles, setAnimatedCircles] = useState([]);
-
+    // console.log(marking)
   useEffect(() => {
     let count = marking.length;
     let size = 20 / Math.exp(count / 10) + 5;
@@ -34,7 +30,7 @@ export const MarkingDisplay = ({ marking }) => {
         <svg viewBox="0 0 100 100">
           {animatedCircles.map((c) => (
             <motion.circle
-              key={c.id}
+              key={c.data.id}
               cx={0}
               cy={0}
               r={6}

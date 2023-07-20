@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import ReactFlow, {
   Background,
   ConnectionMode,
-  Panel,
   ReactFlowProvider,
 } from "reactflow";
 import { red } from "@mui/material/colors";
@@ -12,7 +11,7 @@ import "reactflow/dist/style.css";
 import PlaceNode from "./PlaceNode";
 import FloatingEdge from "./FloatingEdge";
 import FloatingEdgePreview from "./FloatingEdgePreview";
-import { useAtom, useSetAtom, useAtomValue } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   nameAtom,
   placesAtom,
@@ -25,10 +24,6 @@ import {
   simulatingAtom,
   startColorAtom,
   endColorAtom,
-  canUndoAtom,
-  canRedoAtom,
-  undoAtom,
-  redoAtom,
   snapshotAtom,
   highlightEdgesAtom,
   showConnectingLabelsAtom,
@@ -38,7 +33,7 @@ import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard, useForceLayout } from "./utils";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { cloneDeep, shuffle, mapValues, clamp, pick } from "lodash";
+import { cloneDeep, shuffle, mapValues, clamp, pick, range } from "lodash";
 import { v4 as uuid4 } from "uuid";
 import {
   Stack,
@@ -135,6 +130,7 @@ function Petri() {
       };
       reader.onload = () => {
         let data = YAML.parse(reader.result);
+        console.log(data)
         if (data) {
           setName(data.name || "Untitled Net");
           if (
@@ -199,8 +195,20 @@ function Petri() {
             setTransitions(data.transitions || {});
           }
 
-          setMarking(data.marking || data.initial_marking || {});
-          setInitialMarking(data.initial_marking || data.marking || {});
+          setMarking(mapValues(data.marking || data.initial_marking || {}, (v)=>{
+            if (typeof v == "number") {
+              return range(v).map(_=>({id: uuid4()}));
+            } else if (typeof v == "object") {
+              return v;
+            }
+          }));
+          setInitialMarking(mapValues(data.initial_marking || data.marking || {}, (v)=>{
+            if (typeof v == "number") {
+              return range(v).map(_=>({id: uuid4()}));
+            } else if (typeof v == "object") {
+              return v;
+            }
+          }));
         }
       };
       reader.readAsText(fileUploaded);
@@ -265,14 +273,13 @@ function Petri() {
         ) {
           console.log("starting transition");
           inputNodes.forEach((inputNode) => {
-            for (let i = 0; i < transition.input[inputNode.id]; i++) {
+            // for (let i = 0; i < transition.input[inputNode.id]; i++) {
               if (places[inputNode.id].tokens !== "infinite") {
                 let newTokens = [...newMarking[inputNode.id]];
-                newTokens.pop();
-                console.log(`old tokens: ${newMarking[inputNode.id]?.length}; new tokens: ${newTokens.length}`);
+                newTokens.length = newTokens.length - transition.input[inputNode.id];
                 newMarking[inputNode.id] = newTokens;
               }
-            }
+            // }
           });
           newMarking[transition.id] = 0.001;
           update = true;
