@@ -29,6 +29,8 @@ import {
 } from "./atom";
 import { TooltippedToolbarButton } from "./ToolbarButton";
 import { ButtonGroup } from "./MotionElements";
+import { PlayControls } from "./PlayControls";
+import { VersionControls } from "./VersionControls";
 
 const drawerWidth = 240;
 
@@ -53,7 +55,7 @@ const StyledAppBar = styled(MuiAppBar, {
   }),
 }));
 
-export const AppBar = ({ open, onOpen, addMode, onSetAddMode }) => {
+export const AppBar = ({ open, onOpen }) => {
   const [name, setName] = useAtom(nameAtom);
   const [simulating, setSimulating] = useAtom(simulatingAtom);
 
@@ -104,66 +106,10 @@ export const AppBar = ({ open, onOpen, addMode, onSetAddMode }) => {
           </Stack>
 
           {/* Undo/Redo */}
-          <ButtonGroup
-            direction="row"
-            gap={0.5}
-            sx={{
-              backdropFilter: "blur(5pt)",
-              WebkitBackdropFilter: "blur(5pt)",
-              backgroundColor: "rgba(0,0,0,0.5)",
-            }}
-          >
-            <TooltippedToolbarButton
-              title="Undo"
-              disabled={!canUndo}
-              onClick={undo}
-            >
-              <FiRotateCcw />
-            </TooltippedToolbarButton>
-            <TooltippedToolbarButton
-              title="Redo"
-              disabled={!canRedo}
-              onClick={redo}
-            >
-              <FiRotateCw />
-            </TooltippedToolbarButton>
-          </ButtonGroup>
+          <VersionControls sx={{display: {xs: "none", md: "flex", sm: "none"}}}/>
 
           {/* Play Controls */}
-          <ButtonGroup direction="row" gap={0.5}>
-            <TooltippedToolbarButton
-              title="Restart Simulation"
-              disabled={simulating}
-              onClick={() => {
-                setMarking(initialMarking);
-              }}
-            >
-              <FiRewind />
-            </TooltippedToolbarButton>
-            <TooltippedToolbarButton
-              title={simulating ? "Pause" : "Play"}
-              canToggle
-              toggled={simulating}
-              onClick={() => {
-                if (simulating) {
-                  setSimulating(false);
-                } else {
-                  setSimulating(true);
-                }
-              }}
-            >
-              {simulating ? <FiPause /> : <FiPlay />}
-            </TooltippedToolbarButton>
-            <Divider light orientation="vertical" />
-            <TooltippedToolbarButton
-              title="Add Place"
-              toggled={addMode}
-              canToggle
-              onClick={() => onSetAddMode(!addMode)}
-            >
-              <FiPlus />
-            </TooltippedToolbarButton>
-          </ButtonGroup>
+          <PlayControls sx={{display: {xs: "none", md: "flex", sm: "none"}}}/>
 
           {/* Export/Share Controls */}
         </Stack>

@@ -1,14 +1,16 @@
 import Input from '@mui/base/Input';
 import { styled } from "@mui/material/styles";
 
-export const SimpleInput = styled('input')(
-    ({ theme }) => ({
+export const SimpleInput = styled('input',{
+    shouldForwardProp: (prop) => !["wrapped"].includes(prop),
+  })(
+    ({ theme, wrapped }) => ({
         width: 100,
-        height: 16,
+        height: 30,
         fontSize: '0.857rem',
         lineHeight:1.5,
         padding: 12,
-        borderRadius: 5,
+        borderRadius: wrapped ? theme.shape.borderRadius * 0.66 : theme.shape.borderRadius,
         color: theme.palette.primary,
         background: '#24292f',
         border: `1px solid #24292f`,

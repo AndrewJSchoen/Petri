@@ -6,9 +6,11 @@ import { styled, alpha } from "@mui/material/styles";
 export const ToolbarButton = styled(IconButton, {
   shouldForwardProp: (prop) => !["canToggle","toggled","flex"].includes(prop),
 
-})(({ theme, canToggle, toggled, flex}) => ({
-  borderRadius: 3,
-  fontSize: "0.875rem",
+})(({ theme, canToggle, toggled,  }) => ({
+  borderRadius: theme.shape.borderRadius * 0.66,
+  // fontSize: {md: "0.875rem", sm: "1rem"},
+  fontSize: "1rem",
+  height: 30,
   flex: 1,
   backgroundColor: toggled ? alpha(theme.palette.primary.main, 0.4) : "transparent",
   "&:hover": {
@@ -35,9 +37,9 @@ export const ToolbarButton = styled(IconButton, {
 }));
 
 export const ToolbarChip = styled(Chip)(({ theme }) => ({
-  borderRadius: 3,
-  fontSize: "0.875rem",
-  height: 26,
+  borderRadius: theme.shape.borderRadius * 0.66,
+  fontSize: "1rem",
+  height: 30,
   backgroundColor: alpha(theme.palette.primary.main, 0.45),
   color: "black",
 }));

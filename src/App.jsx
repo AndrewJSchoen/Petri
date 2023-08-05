@@ -11,7 +11,7 @@ import "reactflow/dist/style.css";
 import PlaceNode from "./PlaceNode";
 import FloatingEdge from "./FloatingEdge";
 import FloatingEdgePreview from "./FloatingEdgePreview";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   nameAtom,
   placesAtom,
@@ -28,6 +28,7 @@ import {
   highlightEdgesAtom,
   showConnectingLabelsAtom,
   useForceLayoutAtom,
+  addModeAtom,
 } from "./atom";
 import TransitionNode from "./TransitionNode";
 import { copyTextToClipboard, useForceLayout } from "./utils";
@@ -55,6 +56,8 @@ import { Drawer } from "./Drawer";
 import { AppBar } from "./AppBar";
 import { TooltippedToolbarButton } from "./ToolbarButton";
 import { Accordion, AccordionSummary, AccordionDetails } from "./Accordion";
+import { PlayControls } from "./PlayControls";
+import { VersionControls } from "./VersionControls";
 
 const nodeTypes = { placeNode: PlaceNode, transitionNode: TransitionNode };
 const edgeTypes = {
@@ -66,8 +69,8 @@ function Petri() {
   const fileInputRef = useRef();
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [addMode, setAddMode] = useState(false);
-  const [simulating, setSimulating] = useAtom(simulatingAtom);
+  const [addMode, setAddMode] = useAtom(addModeAtom);
+  const simulating = useAtomValue(simulatingAtom);
   const [nodeList] = useAtom(nodeListAtom);
   const [edgeList] = useAtom(edgeListAtom);
   const [name, setName] = useAtom(nameAtom);
@@ -104,6 +107,9 @@ function Petri() {
         main: red.A400,
       },
     },
+    shape: {
+      borderRadius: 6.6,
+    }
   });
 
   const download = () => {
@@ -398,8 +404,6 @@ function Petri() {
       <AppBar
         open={sidebarOpen}
         onOpen={()=>setSidebarOpen(!sidebarOpen)}
-        addMode={addMode}
-        onSetAddMode={setAddMode}
       />
       <input
         type="file"
@@ -440,6 +444,10 @@ function Petri() {
           </>
         }
       >
+        <Stack direction="row" spacing={1} justifyContent='space-around' sx={{display: {xs: "flex", sm: "flex", md: 'none', padding:3, marginTop:3,marginBottom:3}}}>
+        <PlayControls sx={{display: {xs: "flex", sm: "flex", md: 'none'}}}/>
+        <VersionControls sx={{display: {xs: "flex", sm: "flex", md: 'none'}}}/>
+        </Stack>
         <Accordion disableGutters square>
           <AccordionSummary
             // expandIcon={<FiMoreHorizontal />}

@@ -10,7 +10,7 @@ export const Switch = styled((props) => (
     padding: 0,
     '& .MuiSwitch-switchBase': {
       padding: 0,
-      margin: 2,
+      margin: 3,
       transitionDuration: '300ms',
       '&.Mui-checked': {
         transform: 'translateX(16px)',
@@ -40,11 +40,12 @@ export const Switch = styled((props) => (
     },
     '& .MuiSwitch-thumb': {
       boxSizing: 'border-box',
-      width: 22,
-      height: 22,
+      width: 20,
+      height: 20,
+      borderRadius: theme.shape.borderRadius * 0.66
     },
     '& .MuiSwitch-track': {
-      borderRadius: 26 / 2,
+      borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.palette.mode === 'light' ? '#E9E9EA' : '#29292D',
       opacity: 1,
       transition: theme.transitions.create(['background-color'], {

@@ -16,7 +16,7 @@ import { getCustomEdge, getNodeCenter } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
 
-function FloatingEdge({ id, source, target, markerEnd }) {
+function FloatingEdge({ id, source, target }) {
   const sourceNode = useStore(
     useCallback((store) => store.nodeInternals.get(source), [source])
   );

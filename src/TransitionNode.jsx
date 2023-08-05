@@ -130,6 +130,7 @@ export default memo(({ isConnectable }) => {
             </ToolbarButton>
           </Tooltip>
           <SimpleInput
+            wrapped
             readOnly
             value={transition.name}
           />
@@ -155,6 +156,7 @@ export default memo(({ isConnectable }) => {
           </Tooltip>
           <SimpleInput
             value={transition.name}
+            wrapped
             onChange={(e) => {
               snapshot();
               setTransition({ ...transition, name: e.target.value });

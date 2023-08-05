@@ -107,7 +107,7 @@ export default memo(({ isConnectable }) => {
                     {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
                   </ToolbarButton>
                 </Tooltip>
-                <SimpleInput readOnly value={place.name} />
+                <SimpleInput readOnly wrapped value={place.name} />
               </>
             ) : (
               <>
@@ -130,6 +130,7 @@ export default memo(({ isConnectable }) => {
                 </Tooltip>
                 <SimpleInput
                   value={place.name}
+                  wrapped
                   onChange={(e) => {
                     snapshot();
                     setPlace({ ...place, name: e.target.value });

@@ -207,6 +207,7 @@ const data = {
 };
 
 export const selectedNodeAtom = atom(null);
+export const addModeAtom = atom(false);
 export const highlightEdgesAtom = atom(true);
 export const useForceLayoutAtom = atom(false);
 export const showConnectingLabelsAtom = atom(true);
