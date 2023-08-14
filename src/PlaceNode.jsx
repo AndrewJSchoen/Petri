@@ -183,11 +183,11 @@ export default memo(({ isConnectable }) => {
                         let newToken = { id: uuid4() };
                         setInitialMarking((im) => ({
                           ...im,
-                          [place.id]: [...im[place.id], newToken],
+                          [place.id]: [...im[place.id] || [], newToken],
                         }));
                         setMarking((m) => ({
                           ...m,
-                          [place.id]: [...m[place.id], newToken],
+                          [place.id]: [...m[place.id] || [], newToken],
                         }));
                       }
                     }}
