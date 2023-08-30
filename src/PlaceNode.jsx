@@ -3,6 +3,10 @@ import React, { memo, useMemo, useState } from "react";
 import { Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { focusAtom } from "jotai-optics";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import {
   markingAtom,
   initialMarkingAtom,
@@ -17,7 +21,7 @@ import {
 } from "./atom";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
 import { IoInfinite, IoExitOutline } from "react-icons/io5";
-import { FiMinus, FiPlus, FiTrash2, FiHash } from "react-icons/fi";
+import { FiMinus, FiPlus, FiTrash2, FiHash, FiCopy } from "react-icons/fi";
 import { mapValues } from "lodash";
 import { SimpleInput } from "./SimpleInput";
 import { ToolbarButton, TooltippedToolbarButton } from "./ToolbarButton";
@@ -43,7 +47,7 @@ export default memo(({ isConnectable }) => {
     [nodeId]
   );
   const [marking, setMarking] = useAtom(markingAtom);
-  const [initialMarking, setInitialMarking] = useAtom(initialMarkingAtom);
+  const setInitialMarking = useSetAtom(initialMarkingAtom);
   const [places, setPlaces] = useAtom(placesAtom);
   const [transitions, setTransitions] = useAtom(transitionsAtom);
   const [place, setPlace] = useAtom(placeAtom);
@@ -57,7 +61,29 @@ export default memo(({ isConnectable }) => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const selectedAdjacents = useAtomValue(selectedAdjacentsAtom);
 
-  // console.log("includes", selectedAdjacents.includes(nodeId));
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu(
+      contextMenu === null
+        ? {
+            mouseX: event.clientX + 2,
+            mouseY: event.clientY - 6,
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
+        : // repeated contextmenu when it is already open closes it with Chrome 84 on Ubuntu
+          // Other native context menus might behave different.
+          // With this behavior we prevent contextmenu from the backdrop to re-locale existing context menus.
+          null
+    );
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null);
+  };
 
   return (
     place && (
@@ -286,6 +312,29 @@ export default memo(({ isConnectable }) => {
           onConnect={(params) => console.log("handle onConnect", params)}
           isConnectable={isConnectable}
         />
+        <Menu
+          open={contextMenu !== null}
+          onClose={handleContextMenuClose}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+        >
+          <MenuItem
+            disabled
+            onClick={() => {
+              // handleCreatePlace();
+              handleContextMenuClose();
+            }}
+          >
+            <ListItemIcon>
+              <FiCopy/>
+            </ListItemIcon>
+            <ListItemText>Copy</ListItemText>
+          </MenuItem>
+          </Menu>
         <Tooltip
           open={tooltipOpen}
           onOpen={() => {
@@ -304,15 +353,26 @@ export default memo(({ isConnectable }) => {
         >
           <Avatar
             aria-label="Place"
-            style={{ color: "black" }}
-            onClick={
-              selectedNode === nodeId
-                ? () => setSelectedNode(null)
-                : () => {
-                    setSelectedNode(nodeId);
-                    setTooltipOpen(false);
-                  }
-            }
+            style={{ color: 'black' }}
+            onContextMenu={handleContextMenu}
+            // onClick={
+            //   selectedNode === nodeId
+            //     ? () => setSelectedNode(null)
+            //     : () => {
+            //         setSelectedNode(nodeId);
+            //         setTooltipOpen(false);
+            //       }
+            // }
+            // {...handlers}
+            onClick={() => {
+              if (selectedNode === nodeId) {
+                setSelectedNode(null)
+              } else {
+                setSelectedNode(nodeId);
+                setTooltipOpen(false);
+              }
+            }}
+            onDoubleClick={handleContextMenu}
           >
             {place.tokens === "infinite" ? (
               <IoInfinite />

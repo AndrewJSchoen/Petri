@@ -1,10 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
-import { useStore, getBezierPath, getSmoothStepPath, EdgeLabelRenderer } from "reactflow";
-import { useAtom, useAtomValue } from "jotai";
+import { useCallback, useMemo } from "react";
+import { useStore } from "reactflow";
+import { useAtomValue } from "jotai";
 import { transitionArrangementsAtom, transitionsAtom } from "./atom";
 import { focusAtom } from "jotai-optics";
-import { getBiDirectionalPath, getCustomEdgePreview, getEdgeParams, getNodeCenter } from "./utils.js";
-import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
+import { getCustomEdgePreview, getNodeCenter } from "./utils.js";
 
 function FloatingEdgePreview({
   id,

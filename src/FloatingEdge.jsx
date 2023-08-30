@@ -15,6 +15,7 @@ import { focusAtom } from "jotai-optics";
 import { getCustomEdge, getNodeCenter } from "./utils.js";
 import { FiMinusCircle, FiPlusCircle } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
+import { ClickAwayListener } from "@mui/base";
 
 function FloatingEdge({ id, source, target }) {
   const sourceNode = useStore(
@@ -71,7 +72,7 @@ function FloatingEdge({ id, source, target }) {
     [0, 0.75, 1],
     [startColor, startColor, endColor]
   );
-  
+
   const actionPathLength = useTransform(
     progress,
     [0, 0.5, 1],
@@ -89,7 +90,11 @@ function FloatingEdge({ id, source, target }) {
   const highlight = useSpring(highlightedEdge ? 1 : 0);
   const transitioning = marking[transition?.id] > 0;
 
-  const fillColor = useTransform(highlight, [0, 1], ['#999', highlightEdges ? endColor : '#999']);
+  const fillColor = useTransform(
+    highlight,
+    [0, 1],
+    ["#999", highlightEdges ? endColor : "#999"]
+  );
 
   useEffect(() => {
     if (!marking[transition?.id]) {
@@ -97,7 +102,7 @@ function FloatingEdge({ id, source, target }) {
     } else {
       progress.set(marking[transition?.id]);
     }
-    highlight.set(highlightedEdge ? 1 : 0)
+    highlight.set(highlightedEdge ? 1 : 0);
   }, [marking[transition?.id], highlightedEdge]);
 
   return (
@@ -120,8 +125,14 @@ function FloatingEdge({ id, source, target }) {
           >
             <motion.polygon
               points="0 0, 5 3.5, 0 7"
-              fill={(highlightEdges && highlightedEdge) || !transitioning ? fillColor : actionStroke}
-              opacity={!highlightedEdge && highlightEdges && selectedNode ? 0.5 : 1}
+              fill={
+                (highlightEdges && highlightedEdge) || !transitioning
+                  ? fillColor
+                  : actionStroke
+              }
+              opacity={
+                !highlightedEdge && highlightEdges && selectedNode ? 0.5 : 1
+              }
             />
           </marker>
         </defs>
@@ -142,7 +153,7 @@ function FloatingEdge({ id, source, target }) {
           opacity={!highlightedEdge && highlightEdges && selectedNode ? 0.5 : 1}
           style={{ fill: "none" }}
           animate={
-            ( highlightEdges && highlightedEdge ) || interactive
+            (highlightEdges && highlightedEdge) || interactive
               ? "selected"
               : transitioning
               ? "transitioning"
@@ -203,29 +214,31 @@ function FloatingEdge({ id, source, target }) {
               }}
             />
           )}
-          <motion.div
-            onClick={() => {
-              console.log("clicked");
-              setInteractive(!interactive);
-            }}
-            style={{
-              position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              background: marking[transition.id] ? actionStroke : "#222",
-              color: marking[transition.id] ? "black" : "#999",
-              padding: 5,
-              borderRadius: 100,
-              fontSize: 5,
-              fontWeight: 700,
-              userSelect: "none",
-              pointerEvents: "all",
-            }}
-            className="nodrag nopan"
-          >
-            {transition.input[source]
-              ? transition.input[source]
-              : transition.output[target]}
-          </motion.div>
+          <ClickAwayListener onClickAway={() => setInteractive(false)}>
+            <motion.div
+              onClick={() => {
+                console.log("clicked");
+                setInteractive(!interactive);
+              }}
+              style={{
+                position: "absolute",
+                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                background: marking[transition.id] ? actionStroke : "#222",
+                color: marking[transition.id] ? "black" : "#999",
+                padding: 5,
+                borderRadius: 100,
+                fontSize: 5,
+                fontWeight: 700,
+                userSelect: "none",
+                pointerEvents: "all",
+              }}
+              className="nodrag nopan"
+            >
+              {transition.input[source]
+                ? transition.input[source]
+                : transition.output[target]}
+            </motion.div>
+          </ClickAwayListener>
           {interactive && (
             <FiPlusCircle
               style={{

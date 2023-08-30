@@ -17,6 +17,8 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   backgroundColor: alpha(theme.palette.background.default, 0.85),
   height: 30,
   borderRadius: theme.shape.borderRadius,
+  backdropFilter: "blur(1pt)",
+  WebkitBackdropFilter: "blur(1pt)",
   "& .MuiToggleButtonGroup-grouped": {
     margin: theme.spacing(0.5),
     border: 0,
@@ -36,8 +38,8 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 export const ButtonGroup = styled(Stack)(({ theme }) => ({
   backgroundColor: alpha(theme.palette.background.default, 0.85),
   padding: theme.spacing(0.5),
-  backdropFilter: "blur(2pt)",
-  WebkitBackdropFilter: "blur(2pt)",
+  backdropFilter: "blur(1pt)",
+  WebkitBackdropFilter: "blur(1pt)",
   // borderRadius: theme.shape.borderRadius,
   "&.Mui-disabled": {
     border: 0,

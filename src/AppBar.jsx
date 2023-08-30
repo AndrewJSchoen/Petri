@@ -2,19 +2,12 @@ import {
   AppBar as MuiAppBar,
   Stack,
   Toolbar,
-  Typography,
-  Divider,
+  Typography
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { SimpleInput } from "./SimpleInput";
 import {
-  FiMenu,
-  FiRewind,
-  FiRotateCcw,
-  FiRotateCw,
-  FiPlay,
-  FiPause,
-  FiPlus,
+  FiMenu
 } from "react-icons/fi";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
@@ -28,7 +21,6 @@ import {
   initialMarkingAtom,
 } from "./atom";
 import { TooltippedToolbarButton } from "./ToolbarButton";
-import { ButtonGroup } from "./MotionElements";
 import { PlayControls } from "./PlayControls";
 import { VersionControls } from "./VersionControls";
 

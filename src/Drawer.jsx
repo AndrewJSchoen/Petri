@@ -1,4 +1,3 @@
-import * as React from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import { Drawer as MuiDrawer, Divider, Stack } from "@mui/material";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";

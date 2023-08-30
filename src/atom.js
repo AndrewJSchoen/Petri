@@ -207,10 +207,12 @@ const data = {
 };
 
 export const selectedNodeAtom = atom(null);
+export const boxSelectionAtom = atom([]);
 export const addModeAtom = atom(false);
 export const highlightEdgesAtom = atom(true);
 export const useForceLayoutAtom = atom(false);
 export const showConnectingLabelsAtom = atom(true);
+// export const taxonomyAtom = atom({});
 
 export const appAtom = atom({
   past: [],
@@ -268,11 +270,14 @@ export const canRedoAtom = atom((get) => get(appAtom).future.length > 0);
 
 export const simulatingAtom = atom(false);
 
-export const nodesAtom = atom((get) => ({
+export const nodesAtom = atom((get) => {
+  const boxSelection = get(boxSelectionAtom);
+  return ({
   ...mapValues(get(placesAtom), (place) => ({
     id: place.id,
     type: "placeNode",
     position: place.position,
+    selected: boxSelection.includes(place.id),
     // data: { label: place.name, tokens: place.tokens },
   })),
   ...mapValues(get(transitionsAtom), (transition) => ({
@@ -280,9 +285,10 @@ export const nodesAtom = atom((get) => ({
     type: "transitionNode",
     dragHandle: ".transition-drag-handle",
     position: transition.position,
+    selected: boxSelection.includes(transition.id),
     // data: { label: transition.name, active: transition.active },
   })),
-}));
+})});
 
 export const edgesAtom = atom((get) => {
   let edges = {};

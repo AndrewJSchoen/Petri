@@ -1,13 +1,13 @@
 import {
-  InputAdornment,
-  TextField,
-  Avatar,
-  Chip,
   Tooltip,
 } from "@mui/material";
 import React, { memo, useMemo, useState, useEffect } from "react";
-import { Handle, Position, NodeToolbar, useNodeId, useStore } from "reactflow";
+import { Position, NodeToolbar, useNodeId, useStore } from "reactflow";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemText from "@mui/material/ListItemText";
+import ListItemIcon from "@mui/material/ListItemIcon";
 import {
   transitionsAtom,
   selectedNodeAtom,
@@ -16,11 +16,11 @@ import {
   startColorAtom,
   endColorAtom,
   snapshotAtom,
-  selectedAdjacentsAtom
+  selectedAdjacentsAtom,
 } from "./atom";
 import { focusAtom } from "jotai-optics";
 import { BsPinAngle, BsPinAngleFill } from "react-icons/bs";
-import { FiTrash2, FiMinus, FiPlus } from "react-icons/fi";
+import { FiTrash2, FiMinus, FiPlus, FiCopy } from "react-icons/fi";
 import { motion, useSpring, useTransform } from "framer-motion";
 import {
   MotionButtonGroup,
@@ -91,13 +91,41 @@ export default memo(({ isConnectable }) => {
     }
   }, [marking[nodeId]]);
 
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu(
+      contextMenu === null
+        ? {
+            mouseX: event.clientX + 2,
+            mouseY: event.clientY - 6,
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }
+        : // repeated contextmenu when it is already open closes it with Chrome 84 on Ubuntu
+          // Other native context menus might behave different.
+          // With this behavior we prevent contextmenu from the backdrop to re-locale existing context menus.
+          null
+    );
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null);
+  };
+
   return (
     transition &&
     transitionArrangement && (
       <>
         <NodeToolbar
           className="nodrag nopan"
-          isVisible={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId)}
+          isVisible={
+            selectedNode === nodeId ||
+            pinned ||
+            selectedAdjacents.includes(nodeId)
+          }
           position="top"
         >
           <MotionButtonGroup
@@ -108,108 +136,121 @@ export default memo(({ isConnectable }) => {
               hidden: { opacity: 0, y: 10 },
             }}
             initial="hidden"
-            animate={selectedNode === nodeId || pinned || selectedAdjacents.includes(nodeId) ? "visible" : "hidden"}
-          > 
-          {selectedAdjacents.includes(nodeId) || (pinned && selectedNode !== nodeId) ? (
-            <>  
-              <Tooltip
-            className="no-outline"
-            title={pinned ? "Unpin" : "Pin This Menu"}
-            color="primary"
-            placement="top"
+            animate={
+              selectedNode === nodeId ||
+              pinned ||
+              selectedAdjacents.includes(nodeId)
+                ? "visible"
+                : "hidden"
+            }
           >
-            <ToolbarButton
-              aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
-              color="primary"
-              onClick={() => {
-                setPinned(!pinned);
-                setTooltipOpen(false);
-              }}
-            >
-              {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-            </ToolbarButton>
-          </Tooltip>
-          <SimpleInput
-            wrapped
-            readOnly
-            value={transition.name}
-          />
-            </>
-          ) : (
-            <>
-            <Tooltip
-            className="no-outline"
-            title={pinned ? "Unpin" : "Pin This Menu"}
-            color="primary"
-            placement="top"
-          >
-            <ToolbarButton
-              aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
-              color="primary"
-              onClick={() => {
-                setPinned(!pinned);
-                setTooltipOpen(false);
-              }}
-            >
-              {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
-            </ToolbarButton>
-          </Tooltip>
-          <SimpleInput
-            value={transition.name}
-            wrapped
-            onChange={(e) => {
-              snapshot();
-              setTransition({ ...transition, name: e.target.value });
-            }}
-          />
-          <Tooltip title="Decrease Transition Time" className="no-outline">
-            <ToolbarButton
-              onClick={() => {
-                snapshot();
-                setTransition({
-                  ...transition,
-                  time: transition.time - 1,
-                });
-              }}
-            >
-              <FiMinus />
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip title="Transition Time" className="no-outline">
-            <ToolbarChip size="small" label={`${transition.time}s`} />
-          </Tooltip>
-          <Tooltip title="Increase Transition Time" className="no-outline">
-            <ToolbarButton
-              onClick={() => {
-                snapshot();
-                setTransition({
-                  ...transition,
-                  time: transition.time + 1,
-                });
-              }}
-            >
-              <FiPlus />
-            </ToolbarButton>
-          </Tooltip>
-          <Tooltip title="Delete Transition" className="no-outline">
-            <ToolbarButton
-              onClick={() => {
-                snapshot();
-                const { [transition.id]: _, ...rest } = transitions;
-                setTransitions(rest);
-              }}
-            >
-              <FiTrash2 />
-            </ToolbarButton>
-          </Tooltip></>
-          )}
-            
+            {selectedAdjacents.includes(nodeId) ||
+            (pinned && selectedNode !== nodeId) ? (
+              <>
+                <Tooltip
+                  className="no-outline"
+                  title={pinned ? "Unpin" : "Pin This Menu"}
+                  color="primary"
+                  placement="top"
+                >
+                  <ToolbarButton
+                    aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                    color="primary"
+                    onClick={() => {
+                      setPinned(!pinned);
+                      setTooltipOpen(false);
+                    }}
+                  >
+                    {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                  </ToolbarButton>
+                </Tooltip>
+                <SimpleInput wrapped readOnly value={transition.name} />
+              </>
+            ) : (
+              <>
+                <Tooltip
+                  className="no-outline"
+                  title={pinned ? "Unpin" : "Pin This Menu"}
+                  color="primary"
+                  placement="top"
+                >
+                  <ToolbarButton
+                    aria-label={pinned ? "Unpin this menu" : "Pin this menu"}
+                    color="primary"
+                    onClick={() => {
+                      setPinned(!pinned);
+                      setTooltipOpen(false);
+                    }}
+                  >
+                    {pinned ? <BsPinAngleFill /> : <BsPinAngle />}
+                  </ToolbarButton>
+                </Tooltip>
+                <SimpleInput
+                  value={transition.name}
+                  wrapped
+                  onChange={(e) => {
+                    snapshot();
+                    setTransition({ ...transition, name: e.target.value });
+                  }}
+                />
+                <Tooltip
+                  title="Decrease Transition Time"
+                  className="no-outline"
+                >
+                  <ToolbarButton
+                    onClick={() => {
+                      snapshot();
+                      setTransition({
+                        ...transition,
+                        time: transition.time - 1,
+                      });
+                    }}
+                  >
+                    <FiMinus />
+                  </ToolbarButton>
+                </Tooltip>
+                <Tooltip title="Transition Time" className="no-outline">
+                  <ToolbarChip size="small" label={`${transition.time}s`} />
+                </Tooltip>
+                <Tooltip
+                  title="Increase Transition Time"
+                  className="no-outline"
+                >
+                  <ToolbarButton
+                    onClick={() => {
+                      snapshot();
+                      setTransition({
+                        ...transition,
+                        time: transition.time + 1,
+                      });
+                    }}
+                  >
+                    <FiPlus />
+                  </ToolbarButton>
+                </Tooltip>
+                <Tooltip title="Delete Transition" className="no-outline">
+                  <ToolbarButton
+                    onClick={() => {
+                      snapshot();
+                      const { [transition.id]: _, ...rest } = transitions;
+                      setTransitions(rest);
+                    }}
+                  >
+                    <FiTrash2 />
+                  </ToolbarButton>
+                </Tooltip>
+              </>
+            )}
           </MotionButtonGroup>
         </NodeToolbar>
         <Tooltip
           open={tooltipOpen}
           onOpen={() => {
-            if (!pinned && selectedNode !== nodeId && (!selectedAdjacents.includes(nodeId))) {
+            if (
+              !pinned &&
+              selectedNode !== nodeId &&
+              !selectedAdjacents.includes(nodeId)
+            ) {
               setTooltipOpen(true);
             }
           }}
@@ -244,6 +285,29 @@ export default memo(({ isConnectable }) => {
               onConnect={(params) => console.log("handle onConnect", params)}
               isConnectable={isConnectable}
             />
+            <Menu
+              open={contextMenu !== null}
+              onClose={handleContextMenuClose}
+              anchorReference="anchorPosition"
+              anchorPosition={
+                contextMenu !== null
+                  ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                  : undefined
+              }
+            >
+              <MenuItem
+                disabled
+                onClick={() => {
+                  // handleCreatePlace();
+                  handleContextMenuClose();
+                }}
+              >
+                <ListItemIcon>
+                  <FiCopy />
+                </ListItemIcon>
+                <ListItemText>Copy</ListItemText>
+              </MenuItem>
+            </Menu>
             <MotionAvatar
               className="transition-drag-handle"
               aria-label="Transition"
@@ -256,6 +320,7 @@ export default memo(({ isConnectable }) => {
                 width: 20,
                 // alignItems: "center",
               }}
+              onContextMenu={handleContextMenu}
               onClick={
                 selectedNode === nodeId
                   ? () => setSelectedNode(null)
